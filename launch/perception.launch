@@ -1,0 +1,21 @@
+<launch>
+    <!-- establish static transform from camera link to base link -->
+    <node pkg="tf" type="static_transform_publisher" name="camera_to_base_link"
+        args="0 0 0 -0.5 0.5 -0.5 0.5 uav1/base_link camera_link 50" />
+
+    <!-- launch csrt tracker -->
+    <arg name="tracker"/>
+    <node name="csrt_tracker" pkg="2020_trackers" type="tracker.py" output="screen" args="$(arg tracker)">
+        <param name="~bbox_in_topic" value="/perception/roi/rect"/> 
+        <!-- <param name="~color_img_topic" value="/uav1/dji_sdk/fpv_camera_images"/> -->
+        <param name="~color_img_topic" value="/front_track_camera/fisheye1/image_raw"/>
+        <param name="~publish_tracked" value="True"/>
+    </node>
+
+    <!-- launch ROI selector -->
+    <node name="roi_selector_gui" pkg="2020_trackers" type="2020_trackers_gui">
+        <!-- <remap from="/camera" to="/uav1/dji_sdk/fpv_camera_images"/> -->
+        <remap from="/camera" to="/front_track_camera/fisheye1/image_raw"/>
+    </node>
+
+</launch>
