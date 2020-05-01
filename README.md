@@ -5,7 +5,7 @@
   
 ## 2 Build 
     cd ~/catkin_ws/src
-    git clone 
+    git clone https://github.com/sanjanamallya/contact_inspection_trackers.git
     cd ../
     catkin build
     source ~/catkin_ws/devel/setup.bash
@@ -18,7 +18,7 @@
     "3": Boosting
     "4": MIL
     "5": TLD
-    "6": cMedianFlow
+    "6": MedianFlow
     "7": MOSSE
 ## 4 Data 
 https://drive.google.com/open?id=19HRTCX1dE6q8iE3Fgij95ehdfwTGV6sB
