@@ -202,7 +202,7 @@ public:
     cv_bridge::CvImagePtr bbox;
     try
     {
-      bbox = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+      bbox = cv_bridge::toCvCopy(msg); //, sensor_msgs::image_encodings::MONO8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -222,7 +222,7 @@ public:
     cv_bridge::CvImagePtr cv_ptr;
     try
     {
-      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+      cv_ptr = cv_bridge::toCvCopy(msg);//, sensor_msgs::image_encodings::MONO8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -310,7 +310,7 @@ public:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "roi_selector_gui");
+  ros::init(argc, argv, "roi_selector_d435_gui");
   ROISelector roi_selector;
   ros::spin();
   return 0;

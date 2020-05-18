@@ -5,16 +5,15 @@
 
     <!-- launch csrt tracker -->
     <arg name="tracker"/>
-    <node name="csrt_tracker" pkg="2020_trackers" type="tracker.py" output="screen" args="$(arg tracker)">
+    <node name="csrt_tracker" pkg="2020_trackers" type="tracker_d435.py" output="screen" args="$(arg tracker)">
         <param name="~bbox_in_topic" value="/perception/roi/rect"/> 
-        <!-- <param name="~color_img_topic" value="/uav1/dji_sdk/fpv_camera_images"/> -->
-        <param name="~color_img_topic" value="/front_track_camera/fisheye1/image_raw"/>
+        <param name="~color_img_topic" value="/camera/infra1/image_rect_raw"/>
         <param name="~publish_tracked" value="True"/>
     </node>
 
     <!-- launch ROI selector -->
-    <node name="roi_select_gui" pkg="2020_trackers" type="2020_trackers_gui">
-        <remap from="/camera" to="/front_track_camera/fisheye1/image_raw"/>
+    <node name= "roi_select_d435_gui" pkg="2020_trackers" type="2020_trackers_d435_gui">
+        <remap from="/camera" to="/camera/infra1/image_rect_raw"/>
     </node>
 
 </launch>

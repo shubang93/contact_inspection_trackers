@@ -61,13 +61,13 @@ class csrt_tracker(object):
 
     # for node startup
     def init_variables_hard(self, debug):
-        print(self.tracker)
+
         if not debug:
             self.bbox_in_topic = rospy.get_param(
                 "~bbox_in_topic", "/mbz2020/perception/roi/rect"
             )
             self.color_image_topic = rospy.get_param(
-                "~color_img_topic", "/front_track_camera/fisheye1/camera_raw"
+                "~color_img_topic", "/camera/infra1/image_rect_raw"
             )
             self.publish_result_img = rospy.get_param(
                 "~publish_tracked", "False"
@@ -76,7 +76,7 @@ class csrt_tracker(object):
             self.oob_threshold = rospy.get_param("~oob_threshold", 10)
             self.max_bbox_ratio = rospy.get_param("~max_bbox_ratio", 1.0)
         else:
-            self.color_image_topic = "/front_track_camera/fisheye1/camera_raw"
+            self.color_image_topic = "/camera/infra1/image_rect_raw"
             self.bbox_in_topic = "/mbz2020/perception/roi/rect"
             self.publish_result_img = True
             self.oob_threshold = 10
@@ -101,7 +101,8 @@ class csrt_tracker(object):
             "4": cv2.TrackerMIL_create,
             "5": cv2.TrackerTLD_create,
             "6": cv2.TrackerMedianFlow_create,
-            "7": cv2.TrackerMOSSE_create
+            "7": cv2.TrackerMOSSE_create,
+            "8": cv2.TrackerGOTURN_create
 	        }
         print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
         self._tracker = OPENCV_OBJECT_TRACKERS[self.tracker]()
@@ -221,8 +222,8 @@ class csrt_tracker(object):
     #
 
     def got_bounding_box(self, boundingBox):
-        self.init_variables_hard(False)
 
+        self.init_variables_hard(False)
         center = (boundingBox.center.x, boundingBox.center.y)
         width = boundingBox.size_x
         height = boundingBox.size_y
@@ -246,9 +247,12 @@ class csrt_tracker(object):
         if self._is_first_frame and self._inital_bbox is not None:
             rospy.loginfo("Initializing tracker")
             current_bbox = self._inital_bbox
+
             bbox_center = self.calculate_bbox_center(current_bbox)
+
             self._tracker.init(color_image, current_bbox)
             self._is_first_frame = False
+
             final_bbox = current_bbox
 
         elif not self._is_first_frame:
@@ -264,6 +268,7 @@ class csrt_tracker(object):
                 self._current_status = 0
                 status_message = Int8()
                 status_message.data = self._current_status
+                print("Status",self._current_status)
                 self._pub_status.publish(status_message)
 
 

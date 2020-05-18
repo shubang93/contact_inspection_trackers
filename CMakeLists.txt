@@ -129,10 +129,7 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/mbz2020_perception.cpp
-# )
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -145,7 +142,9 @@ include_directories(
 add_executable(${PROJECT_NAME}_gui
   src/roi_selector_gui.cpp
 )
-
+add_executable(${PROJECT_NAME}_d435_gui
+  src/roi_selector_gui_d435.cpp
+)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -156,13 +155,17 @@ add_executable(${PROJECT_NAME}_gui
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
+add_dependencies(${PROJECT_NAME}_d435_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_gui
+ 
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
-
+target_link_libraries(${PROJECT_NAME}_d435_gui
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
 #############
 ## Install ##
 #############

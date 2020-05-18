@@ -3,11 +3,10 @@
     <node pkg="tf" type="static_transform_publisher" name="camera_to_base_link"
         args="0 0 0 -0.5 0.5 -0.5 0.5 uav1/base_link camera_link 50" />
 
-    <!-- launch csrt tracker -->
-    <arg name="tracker"/>
-    <node name="csrt_tracker" pkg="2020_trackers" type="tracker.py" output="screen" args="$(arg tracker)">
+    <!-- launch goturn tracker -->
+    <arg name="model_path"/>
+    <node name="goturn_tracker" pkg="2020_trackers" type="goturn_test.py" output="screen" args="$(arg model_path)">
         <param name="~bbox_in_topic" value="/perception/roi/rect"/> 
-        <!-- <param name="~color_img_topic" value="/uav1/dji_sdk/fpv_camera_images"/> -->
         <param name="~color_img_topic" value="/front_track_camera/fisheye1/image_raw"/>
         <param name="~publish_tracked" value="True"/>
     </node>

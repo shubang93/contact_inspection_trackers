@@ -1,0 +1,7 @@
+<launch>
+    <!-- launch ROI selector -->
+    <node name="roi_selector_gui_d435" pkg="2020_trackers" type="2020_trackers_gui_d435">
+        <remap from="/camera" to="/camera/infra1/image_rect_raw"/>
+    </node>
+
+</launch>

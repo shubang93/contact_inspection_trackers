@@ -1,6 +1,6 @@
 <launch>
     <!-- launch ROI selector -->
-    <node name="roi_selector_gui" pkg="2020_trackers" type="mbz2020_trackers_gui">
+    <node name="roi_select_gui" pkg="2020_trackers" type="2020_trackers_gui">
         <remap from="/camera" to="/front_track_camera/fisheye1/image_raw"/>
     </node>
 </launch>

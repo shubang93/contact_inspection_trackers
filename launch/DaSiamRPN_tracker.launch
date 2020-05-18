@@ -1,0 +1,19 @@
+<launch>
+    <!-- establish static transform from camera link to base link -->
+    <node pkg="tf" type="static_transform_publisher" name="camera_to_base_link"
+        args="0 0 0 -0.5 0.5 -0.5 0.5 uav1/base_link camera_link 50" />
+
+    <!-- launch DaSiamRPN tracker -->
+    <!--arg name="model_path"/ -->
+    <node name="DaSiamRPN_tracker" pkg="2020_trackers" type="test_otb.py" output="screen">
+        <param name="~bbox_in_topic" value="/perception/roi/rect"/> 
+        <param name="~color_img_topic" value="/camera/infra1/image_rect_raw"/>
+        <param name="~publish_tracked" value="True"/>
+    </node>
+
+    <!-- launch ROI selector -->
+    <node name="roi_select_d435_gui" pkg="2020_trackers" type="2020_trackers_d435_gui">
+        <remap from="/camera" to="/camera/infra1/image_rect_raw"/>
+    </node>
+
+</launch>
