@@ -16,9 +16,11 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   vision_msgs
+  pcl_ros
 )
 
 find_package(OpenCV REQUIRED)
+find_package(PCL 1.2 REQUIRED)
 
 # message(\n\n\n${OpenCV_INCLUDE_DIRS}\n\n\n)
 
@@ -129,6 +131,9 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 
 ## Add cmake target dependencies of the library
@@ -139,12 +144,18 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
+
 add_executable(${PROJECT_NAME}_gui
   src/roi_selector_gui.cpp
 )
 add_executable(${PROJECT_NAME}_d435_gui
   src/roi_selector_gui_d435.cpp
 )
+add_executable(${PROJECT_NAME}_point_cloud 
+    src/point_cloud.cpp
+)
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -157,6 +168,7 @@ add_executable(${PROJECT_NAME}_d435_gui
 add_dependencies(${PROJECT_NAME}_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_d435_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
+
 target_link_libraries(${PROJECT_NAME}_gui
  
   ${catkin_LIBRARIES}
@@ -166,6 +178,9 @@ target_link_libraries(${PROJECT_NAME}_d435_gui
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
+
+target_link_libraries(${PROJECT_NAME}_point_cloud ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############

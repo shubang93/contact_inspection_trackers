@@ -22,10 +22,7 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import BoundingBox2D
 from std_msgs.msg import Float32, Int8
 
-# parser = argparse.ArgumentParser(description='PyTorch SiamRPN OTB Test')
-# parser.add_argument('--dataset', dest='dataset', default='OTB2015', help='datasets')
-# parser.add_argument('-v', '--visualization', dest='visualization', action='store_true',
-#                     help='whether visualize result')
+
 class DaSiamRPN:
 
     def __init__(self, device):

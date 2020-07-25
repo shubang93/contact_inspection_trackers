@@ -240,7 +240,7 @@ class csrt_tracker(object):
     def got_image(self, rgb_msg):
 
         
-        color_image = self._bridge.imgmsg_to_cv2(rgb_msg)
+        color_image = self._bridge.imgmsg_to_cv2(rgb_msg,'bgr8')
 
         final_bbox = None
 

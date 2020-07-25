@@ -1,0 +1,14 @@
+CTestCustom.cmake
+CTestTestfile.cmake
+color.jpg
+CTestConfiguration.ini
+depth.jpg
+Makefile
+output2.ply
+output.ply
+reconstructed.ply
+.vscode/settings.json
+launch/test_pcd.ply
+scripts/cmo.py
+src/dump.cpp
+src/opencv.xyz

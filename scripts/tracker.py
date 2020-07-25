@@ -7,17 +7,19 @@ import rospy
 import numpy as np
 import message_filters
 import argparse
+# import open3d as o3d
 from sensor_msgs.msg import Image
 from vision_msgs.msg import BoundingBox2D
 from std_msgs.msg import Float32, Int8
 
+
 """
 
-This ROS Node is adapted from Lorenz Stangier's tracker_scale.py ("implements a object tracker that used a depth image
-to resize it's generated bounding box")
+
 
 Purpose of this ROS Node is to track objects with a CSRT tracker but without depth information and therefore without 
-depth-reliant scaling. bbox size-dependent scaling functionality remains.
+depth-reliant scaling. bbox size-dependent scaling functionality remains. [This ROS Node is adapted from Lorenz Stangier's tracker_scale.py ("implements a object tracker that used a depth image
+to resize it's generated bounding box")]]
 
 It takes the following parameters:
     ~color_img_topic:
@@ -37,7 +39,7 @@ It subscribes to the following topics:
 
 It publishes on the following topics:
     /perception/tracker/bboxOut (vision_msgs/BoundingBox2D):
-        The current (scaled) bounding box of the object that's being tracked.
+        The current bounding box of the object that's being tracked.
     /perception/tracker/bboxImage (sensor_msgs/Image)
         The current RGB Image with overlayed BBox (only if enabled)
     /perception/tracker/status (Int8)
@@ -61,26 +63,37 @@ class csrt_tracker(object):
 
     # for node startup
     def init_variables_hard(self, debug):
-        print(self.tracker)
+        # print(self.tracker)
         if not debug:
             self.bbox_in_topic = rospy.get_param(
-                "~bbox_in_topic", "/mbz2020/perception/roi/rect"
+                "~bbox_in_topic", "/perception/roi/rect"
             )
             self.color_image_topic = rospy.get_param(
-                "~color_img_topic", "/front_track_camera/fisheye1/camera_raw"
+                "~color_img_topic", "/front_depth_camera/color/image_raw"
+            )
+            self.depth_image_topic = rospy.get_param(
+                "~depth_img_topic", "/front_depth_camera/aligned_depth_to_color/image_raw"
+
             )
             self.publish_result_img = rospy.get_param(
                 "~publish_tracked", "False"
             )
 
+            self.publish_pose = rospy.get_param(
+                "~publish_pose", "False"
+            )
+            self.min_depth = rospy.get_param("~min_depth", 0.1)
+            self.max_depth = rospy.get_param("~max_depth", 20.0)
             self.oob_threshold = rospy.get_param("~oob_threshold", 10)
             self.max_bbox_ratio = rospy.get_param("~max_bbox_ratio", 1.0)
         else:
             self.color_image_topic = "/front_track_camera/fisheye1/camera_raw"
-            self.bbox_in_topic = "/mbz2020/perception/roi/rect"
+            self.bbox_in_topic = "/perception/roi/rect"
             self.publish_result_img = True
             self.oob_threshold = 10
             self.max_bbox_ratio = 1.0
+            self.max_depth = 5.0
+            self.min_depth = 0.5
 
         self._bridge = CvBridge()
 
@@ -90,7 +103,7 @@ class csrt_tracker(object):
 
         self._inital_bbox = None
         self._current_bbox = None
-
+        self.savepointcloud = True
         self._original_distance = -1
         self._current_distance = -1
         self._previous_distance = -1
@@ -103,7 +116,7 @@ class csrt_tracker(object):
             "6": cv2.TrackerMedianFlow_create,
             "7": cv2.TrackerMOSSE_create
 	        }
-        print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
+        # print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
         self._tracker = OPENCV_OBJECT_TRACKERS[self.tracker]()
         
 
@@ -117,6 +130,17 @@ class csrt_tracker(object):
         self._last_bbox = None
 
         self._current_status = 1
+        self.focal_length = 619.2664184570312 
+        self.cx = 324
+        self.cy = 246
+        self.height = 480
+        self.width = 640
+
+        self.Q2 = np.float32([[1,0,0,0],
+        [0,-1,0,0],
+        [0,0,-self.focal_length*0.006,0], #Focal length multiplication obtained experimentally. 
+        [0,0,0,1]])
+
 
     # for easy tracker re-initialization
     def init_variables_soft(self):
@@ -144,14 +168,16 @@ class csrt_tracker(object):
         self._current_status = 1
 
     def init_subscribers(self):
+        #0.033
+        # sub_image = rospy.Subscriber(self.color_image_topic, Image, self.got_image_color)
         sub_color = message_filters.Subscriber(self.color_image_topic, Image)
-
-        sub_image = rospy.Subscriber(self.color_image_topic, Image, self.got_image)
-
+        sub_depth = message_filters.Subscriber(self.depth_image_topic, Image)
+        sync = message_filters.ApproximateTimeSynchronizer([sub_color, sub_depth], 2, 0.1)
+        sync.registerCallback(self.got_image)
+        # print("registered")
         sub_bbox = rospy.Subscriber(
             self.bbox_in_topic, BoundingBox2D, self.got_bounding_box
         )
-
     def init_publisher(self):
         self._pub_bbox = rospy.Publisher(
             "/perception/tracker/bboxOut", BoundingBox2D, queue_size=10
@@ -163,6 +189,11 @@ class csrt_tracker(object):
 
         self._pub_status = rospy.Publisher(
             "/perception/tracker/status", Int8, queue_size=10
+
+        )
+        # TO_DO: check data type
+        self._pub_pose = rospy.Publisher(
+            "/perception/tracker/pose", Float32, queue_size=10
         )
 
     #
@@ -236,10 +267,56 @@ class csrt_tracker(object):
                 height,
             )
 
-    def got_image(self, rgb_msg):
-
+    def write_pointcloud(self, vertices, colors, filename):
+        colors = colors.reshape(-1,3)
+        # print(("_"*20))
+        # print(vertices.reshape(-1,3))
+        vertices = np.hstack([vertices.reshape(-1,3),colors])
         
-        color_image = self._bridge.imgmsg_to_cv2(rgb_msg)
+
+        ply_header = '''ply
+            format ascii 1.0
+            element vertex %(vert_num)d
+            property float x
+            property float y
+            property float z
+            property uchar red
+            property uchar green
+            property uchar blue
+            end_header
+            '''
+        
+        with open(filename, 'w') as f:
+            # print("-"*10)
+            # print("writing")
+            f.write(ply_header %dict(vert_num=len(vertices)))
+            np.savetxt(f,vertices,'%f %f %f %d %d %d')
+
+    def got_image(self, rgb_msg, depth_msg):
+
+    
+        color_image = self._bridge.imgmsg_to_cv2(rgb_msg, '8UC3')
+        depth_image = self._bridge.imgmsg_to_cv2(
+            depth_msg, "8UC1"
+        )
+        points_3D = cv2.reprojectImageTo3D(depth_image, self.Q2)
+        mask_map = depth_image > 0
+        output_points = points_3D[mask_map]
+        output_colors = color_image[mask_map]
+
+        # depth_image = np.expand_dims(depth_image, axis= 2)
+
+        cv2.imwrite("/home/sanjana/trackers/src/contact_inspection_trackers/color.jpg", color_image)
+        cv2.imwrite("/home/sanjana/trackers/src/contact_inspection_trackers/depth.jpg", depth_image)
+
+        # print(" Type {} and shape {}".format(type(depth_image), depth_image.shape))
+        # print(" output type of reprojectImageto3d", type(output_points), output_points.shape)
+        # if self.savepointcloud:
+        output_file = "/home/sanjana/trackers/src/contact_inspection_trackers/reconstructed.ply"
+        # print ("\n Creating the output file... \n")
+        self.write_pointcloud(output_points, output_colors, output_file)
+            # self.savepointcloud = False
+
 
         final_bbox = None
 
@@ -249,11 +326,11 @@ class csrt_tracker(object):
             bbox_center = self.calculate_bbox_center(current_bbox)
             self._tracker.init(color_image, current_bbox)
             self._is_first_frame = False
-            final_bbox = current_bbox
+            final_bbox = current_bbox   
 
         elif not self._is_first_frame:
 
-	    ok, self.tracker_suggested_bbox = self._tracker.update(
+            ok, self.tracker_suggested_bbox = self._tracker.update(
                     color_image
                 )
 
@@ -308,6 +385,9 @@ class csrt_tracker(object):
             status_message.data = self._current_status
             self._pub_status.publish(status_message)
 
+            cv2.imshow('depth',depth_image)
+            cv2.waitKey()
+
             if self.publish_result_img:
                 final_bbox = tuple([int(i) for i in final_bbox])
 
@@ -318,11 +398,102 @@ class csrt_tracker(object):
 
                 cv2.circle(color_image, center, 3, (255, 0, 0), 2)
 
+                # print("Publishing tracked bbox")
                 imgmsg = self._bridge.cv2_to_imgmsg(
-                    color_image, encoding="mono8"
+                    color_image, 'rgb8'
                 )
   
                 self._pub_result_img.publish(imgmsg)
+        
+    def got_image_color(self, rgb_msg):
+
+            # print("got_image_color")
+            color_image = self._bridge.imgmsg_to_cv2(rgb_msg, '8UC3')
+
+            final_bbox = None
+
+            if self._is_first_frame and self._inital_bbox is not None:
+                rospy.loginfo("Initializing tracker")
+                current_bbox = self._inital_bbox
+                bbox_center = self.calculate_bbox_center(current_bbox)
+                self._tracker.init(color_image, current_bbox)
+                self._is_first_frame = False
+                final_bbox = current_bbox   
+
+            elif not self._is_first_frame:
+
+                ok, self.tracker_suggested_bbox = self._tracker.update(
+                        color_image
+                    )
+
+                if ok:
+                    final_bbox = self.tracker_suggested_bbox
+
+                else:
+                    self._current_status = 0
+                    status_message = Int8()
+                    status_message.data = self._current_status
+                    self._pub_status.publish(status_message)
+
+
+            if final_bbox is not None:
+                self._last_bbox = final_bbox
+
+                width_ratio = float(final_bbox[2]) / float(color_image.shape[1])
+                height_ratio = float(final_bbox[3]) / float(color_image.shape[0])
+
+                if (
+                    width_ratio > self.max_bbox_ratio or height_ratio > self.max_bbox_ratio
+                ) and self._scale != self._fallback_scale:
+                    rospy.loginfo("Scaling down...")
+
+                    self._scale = self._fallback_scale
+                    self._has_scale_changed = True
+                elif (
+                    width_ratio < self.max_bbox_ratio and height_ratio < self.max_bbox_ratio
+                ) and self._scale == self._fallback_scale:
+                    rospy.loginfo("Scaling back up...")
+
+                    self._scale = 1.0
+                    self._has_scale_changed = True
+
+                center = self.calculate_bbox_center(final_bbox)
+
+                if self.check_point_oob(center, color_image, self.oob_threshold):
+                    self._current_status = 0
+
+                bbox_message = BoundingBox2D()
+
+                bbox_message.size_x = final_bbox[2]
+                bbox_message.size_y = final_bbox[3]
+
+                bbox_message.center.theta = 0
+                bbox_message.center.x = final_bbox[0] + final_bbox[2] / 2
+                bbox_message.center.y = final_bbox[1] + final_bbox[3] / 2
+
+                self._pub_bbox.publish(bbox_message)
+
+                status_message = Int8()
+                status_message.data = self._current_status
+                self._pub_status.publish(status_message)
+
+
+                if self.publish_result_img:
+                    final_bbox = tuple([int(i) for i in final_bbox])
+
+                    if self._current_status == 1:
+                        cv2.rectangle(color_image, (final_bbox[0], final_bbox[1]), (final_bbox[0]+final_bbox[2], final_bbox[1]+final_bbox[3]), (0, 0, 255), 2)
+                    else:
+                        cv2.rectangle(color_image, (final_bbox[0], final_bbox[1]), (final_bbox[0]+final_bbox[2], final_bbox[1]+final_bbox[3]), (255, 0, 0), 2)
+
+                    cv2.circle(color_image, center, 3, (255, 0, 0), 2)
+
+                    # print("Publishing tracked bbox")
+                    imgmsg = self._bridge.cv2_to_imgmsg(
+                        color_image, 'rgb8'
+                    )
+    
+                    self._pub_result_img.publish(imgmsg)
 
 if __name__ == "__main__":
     rospy.init_node("csrt_tracker")

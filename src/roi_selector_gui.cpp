@@ -173,11 +173,14 @@ public:
   ROISelector()
     : it_(nh_)
   { 
-    // Subscribe to input video feed and publish the selection
+    
+    // Topics related to GUI selection tool
     image_sub_ = it_.subscribe(subscribed_topic, 1,
       &ROISelector::imageCb, this); //subscribes to camera feed 
     image_pub_ = it_.advertise(publish_topic + "image", 1); //publishes annotated bbox image
-    rect_pub_ = nh_.advertise<vision_msgs::BoundingBox2D>(publish_topic + "rect", 1); //publishes annotated bbox image
+    rect_pub_ = nh_.advertise<vision_msgs::BoundingBox2D>(publish_topic + "rect", 1); //publishes annotated bbox coordinates
+
+    // Topics for displaying information abou tracked bbox from tracker.py node
     bbox_sub_ = nh_.subscribe(bbox_topic, 10, &ROISelector::bboxCallback, this);
     bbox_img = it_.subscribe(tracked_bbox_topic,10, &ROISelector::display_tracked_bbox,this);
     state_pub_ = nh_.advertise<std_msgs::String>(state_topic, 1);
@@ -202,7 +205,7 @@ public:
     cv_bridge::CvImagePtr bbox;
     try
     {
-      bbox = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+      bbox = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
     }
     catch (cv_bridge::Exception& e)
     {
@@ -218,11 +221,11 @@ public:
 
   }
   void imageCb(const sensor_msgs::ImageConstPtr& msg)
-  {
+  { 
     cv_bridge::CvImagePtr cv_ptr;
     try
     {
-      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+      cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
     }
     catch (cv_bridge::Exception& e)
     {
