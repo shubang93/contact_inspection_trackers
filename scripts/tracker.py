@@ -181,7 +181,7 @@ class csrt_tracker(object):
         )
     def init_publisher(self):
         self._pub_bbox = rospy.Publisher(
-            "/perception/tracker/bboxOut", Detection2D, queue_size=10
+            "/perception/tracker/bboxOut", Detection2D, queue_size=30
         )
 
         self._pub_result_img = rospy.Publisher(
@@ -271,7 +271,7 @@ class csrt_tracker(object):
     def write_pointcloud(self, vertices, colors, filename):
         colors = colors.reshape(-1,3)
         # print(("_"*20))
-        print(vertices.reshape(-1,3))
+        # print(vertices.reshape(-1,3))
         vertices = np.hstack([vertices.reshape(-1,3),colors])
         
 
@@ -304,7 +304,7 @@ class csrt_tracker(object):
         mask_map = depth_image > 0
         output_points = points_3D[mask_map]
         output_colors = color_image[mask_map]
-        print(type(points_3D), points_3D.shape, points_3D[100][100], type(points_3D[0][0]))
+        # print(type(points_3D), points_3D.shape, points_3D[100][100], type(points_3D[0][0]))
 
         # depth_f = np.expand_dims(depth_image, axis= 2)
 
@@ -378,9 +378,8 @@ class csrt_tracker(object):
 
             # Initialize header info with that of depthmap's
             bbox_message.header.stamp = depth_msg.header.stamp
-            bbox_message.header.seq = depth_msg.header.seq
-            bbox_message.header.frame_id = depth_msg.header.frame_id
-
+            bbox_message.header.seq = "bbox_INFO"
+            
             # bbox info 
             bbox_message.bbox.size_x = final_bbox[2]
             bbox_message.bbox.size_y = final_bbox[3]
