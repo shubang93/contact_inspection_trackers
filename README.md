@@ -24,6 +24,7 @@
 https://drive.google.com/open?id=19HRTCX1dE6q8iE3Fgij95ehdfwTGV6sB
 
 ## TODO
-1. OpenCV Goturn
-2. Other deep-learning based trackers 
+1. Improve tracker performance
+2. Heading estimation 
+3. point cloud filtering
     
