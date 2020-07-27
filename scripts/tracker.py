@@ -10,6 +10,7 @@ import argparse
 # import open3d as o3d
 from sensor_msgs.msg import Image
 from vision_msgs.msg import BoundingBox2D
+from vision_msgs.msg import Detection2D
 from std_msgs.msg import Float32, Int8
 
 
@@ -130,7 +131,7 @@ class csrt_tracker(object):
         self._last_bbox = None
 
         self._current_status = 1
-        self.focal_length = 619.2664184570312 
+        self.focal_length = 619.2664184570312
         self.cx = 324
         self.cy = 246
         self.height = 480
@@ -138,7 +139,7 @@ class csrt_tracker(object):
 
         self.Q2 = np.float32([[1,0,0,0],
         [0,-1,0,0],
-        [0,0,-self.focal_length*0.006,0], #Focal length multiplication obtained experimentally. 
+        [0,0,self.focal_length*0.018,0], #Focal length multiplication obtained experimentally. 
         [0,0,0,1]])
 
 
@@ -180,7 +181,7 @@ class csrt_tracker(object):
         )
     def init_publisher(self):
         self._pub_bbox = rospy.Publisher(
-            "/perception/tracker/bboxOut", BoundingBox2D, queue_size=10
+            "/perception/tracker/bboxOut", Detection2D, queue_size=10
         )
 
         self._pub_result_img = rospy.Publisher(
@@ -270,7 +271,7 @@ class csrt_tracker(object):
     def write_pointcloud(self, vertices, colors, filename):
         colors = colors.reshape(-1,3)
         # print(("_"*20))
-        # print(vertices.reshape(-1,3))
+        print(vertices.reshape(-1,3))
         vertices = np.hstack([vertices.reshape(-1,3),colors])
         
 
@@ -303,19 +304,22 @@ class csrt_tracker(object):
         mask_map = depth_image > 0
         output_points = points_3D[mask_map]
         output_colors = color_image[mask_map]
+        print(type(points_3D), points_3D.shape, points_3D[100][100], type(points_3D[0][0]))
 
-        # depth_image = np.expand_dims(depth_image, axis= 2)
+        # depth_f = np.expand_dims(depth_image, axis= 2)
 
         cv2.imwrite("/home/sanjana/trackers/src/contact_inspection_trackers/color.jpg", color_image)
         cv2.imwrite("/home/sanjana/trackers/src/contact_inspection_trackers/depth.jpg", depth_image)
 
-        # print(" Type {} and shape {}".format(type(depth_image), depth_image.shape))
-        # print(" output type of reprojectImageto3d", type(output_points), output_points.shape)
-        # if self.savepointcloud:
+
         output_file = "/home/sanjana/trackers/src/contact_inspection_trackers/reconstructed.ply"
-        # print ("\n Creating the output file... \n")
-        self.write_pointcloud(output_points, output_colors, output_file)
-            # self.savepointcloud = False
+
+        # self.write_pointcloud(output_points, output_colors, output_file)
+        if self.savepointcloud:
+            output_file = "/home/sanjana/trackers/src/contact_inspection_trackers/reconstructed.ply"
+            print ("\n Creating the output file... \n")
+            self.write_pointcloud(output_points, output_colors, output_file)
+            self.savepointcloud = False
 
 
         final_bbox = None
@@ -370,14 +374,20 @@ class csrt_tracker(object):
             if self.check_point_oob(center, color_image, self.oob_threshold):
                 self._current_status = 0
 
-            bbox_message = BoundingBox2D()
+            bbox_message = Detection2D()
 
-            bbox_message.size_x = final_bbox[2]
-            bbox_message.size_y = final_bbox[3]
+            # Initialize header info with that of depthmap's
+            bbox_message.header.stamp = depth_msg.header.stamp
+            bbox_message.header.seq = depth_msg.header.seq
+            bbox_message.header.frame_id = depth_msg.header.frame_id
 
-            bbox_message.center.theta = 0
-            bbox_message.center.x = final_bbox[0] + final_bbox[2] / 2
-            bbox_message.center.y = final_bbox[1] + final_bbox[3] / 2
+            # bbox info 
+            bbox_message.bbox.size_x = final_bbox[2]
+            bbox_message.bbox.size_y = final_bbox[3]
+
+            bbox_message.bbox.center.theta = 0
+            bbox_message.bbox.center.x = final_bbox[0] + final_bbox[2] / 2
+            bbox_message.bbox.center.y = final_bbox[1] + final_bbox[3] / 2
 
             self._pub_bbox.publish(bbox_message)
 
@@ -385,8 +395,8 @@ class csrt_tracker(object):
             status_message.data = self._current_status
             self._pub_status.publish(status_message)
 
-            cv2.imshow('depth',depth_image)
-            cv2.waitKey()
+            # cv2.imshow('depth',depth_image)
+            # cv2.waitKey()
 
             if self.publish_result_img:
                 final_bbox = tuple([int(i) for i in final_bbox])

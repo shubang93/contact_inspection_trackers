@@ -12,3 +12,4 @@ launch/test_pcd.ply
 scripts/cmo.py
 src/dump.cpp
 src/opencv.xyz
+segmented_plane.ply
