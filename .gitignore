@@ -13,3 +13,4 @@ scripts/cmo.py
 src/dump.cpp
 src/opencv.xyz
 segmented_plane.ply
+src/dump.cpp.cpp

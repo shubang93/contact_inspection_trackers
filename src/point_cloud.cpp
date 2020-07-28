@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include<math.h>
 #include <std_msgs/Int8.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/String.h>
 
 #include <ros/ros.h>
@@ -43,7 +44,7 @@
 #include <vision_msgs/Detection2D.h>
 #include<geometry_msgs/Vector3Stamped.h>
 
-
+#define PI 3.14159265
 
 using namespace message_filters;
 using namespace sensor_msgs;
@@ -57,11 +58,15 @@ const std::string color_image_topic = "/front_depth_camera/color/image_raw";
 const std::string depth_image_topic = "/front_depth_camera/aligned_depth_to_color/image_raw";
 const std::string tracked_bbox_topic = "/perception/tracker/bboxOut";
 const std::string pose_topic = "point_cloud/pose";
+const std::string heading_angle_topic = "point_cloud/heading_angle";
+
 
 double focal_length = 619.2664184570312; 
 
 Vector3Stamped Pose_center;
+std_msgs::Float32 heading_angle;
 ros::Publisher Pose_pub_;
+ros::Publisher Heading_angle;
 
 
 double Q[4][4] = {{1,0,0,0},{0,-1,0,0},{0,0,focal_length*0.018,0}, {0,0,0,1}};
@@ -92,11 +97,14 @@ void MatType( cv::Mat inputMat )
 
 }
 
-void initilize_pose_with_nan(Vector3Stamped& Pose_center){
+void initialize_pose_with_nan(Vector3Stamped& Pose_center){
                 Pose_center.vector.x = numeric_limits<float>::quiet_NaN();
                 Pose_center.vector.y = numeric_limits<float>::quiet_NaN();
                 Pose_center.vector.z = numeric_limits<float>::quiet_NaN();
 
+}
+void initialize_heading_angle_with_nan(std_msgs::Float32& ang){
+    ang.data = numeric_limits<float>::quiet_NaN();
 }
 
 void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth, const Detection2D::ConstPtr& bbox_2D)
@@ -130,8 +138,8 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
             int Height = bbox_2D->bbox.size_y;
 
 
-            cerr<<X<<" "<<Y<<" "<<Width<<" "<<Height<<endl;
-            cerr<<bbox_2D->header.stamp<<endl;
+            // cerr<<X<<" "<<Y<<" "<<Width<<" "<<Height<<endl;
+            // cerr<<bbox_2D->header.stamp<<endl;
 
 
             cv::Mat cropedImage = depth_ptr->image(cv::Rect(X,Y,Width,Height));
@@ -217,13 +225,12 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
             if (inliers->indices.size () == 0)
             {
             std::cerr << "Could not estimate a planar model for the given dataset." << std::endl;
-            initilize_pose_with_nan(Pose_center);
+            initialize_heading_angle_with_nan(heading_angle);
+            initialize_pose_with_nan(Pose_center);
             Pose_center.header.stamp  = bbox_2D->header.stamp;
-
-
             }
-            else{
-
+            else
+            {
             // Extract the inliers
             extract.setInputCloud (cloud);
             extract.setIndices (inliers);
@@ -236,22 +243,30 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
             pcl::PointXYZ p_centroid;          
 
             pcl::computeCentroid(*cloud_p,inliers->indices, p_centroid);
-            if (p_centroid.z>0 && p_centroid.z<1000 ){
+            if (p_centroid.z>0 && p_centroid.z<1000 )
+                {
+                    Pose_center.header.stamp  = bbox_2D->header.stamp;
+                    Pose_center.vector.x = round(p_centroid.x);
+                    Pose_center.vector.y = round(p_centroid.y);
+                    Pose_center.vector.z = round(p_centroid.z);
+                    
+                }
+            else
+            {
                 Pose_center.header.stamp  = bbox_2D->header.stamp;
-                Pose_center.vector.x = round(p_centroid.x);
-                Pose_center.vector.y = round(p_centroid.y);
-                Pose_center.vector.z = round(p_centroid.z);
-                
+                initialize_pose_with_nan(Pose_center);
+                initialize_heading_angle_with_nan(heading_angle);
             }
-            else{
-                Pose_center.header.stamp  = bbox_2D->header.stamp;
-                initilize_pose_with_nan(Pose_center);
+            float A = coefficients->values[0];
+            float B = coefficients->values[1];
+            float C = coefficients->values[2];
+            heading_angle.data = acos(C/ sqrt(pow(A,2)+pow(B,2)+pow(C,2)))* 180.0 / PI;
+            std::cerr<<A<<" "<< B<< " "<<C<<" "<< heading_angle.data <<endl;
+            }
 
 
-                
-            }
-            }
             Pose_pub_.publish(Pose_center);
+            Heading_angle.publish(heading_angle);
             
         }
        
@@ -267,6 +282,7 @@ int main(int argc, char** argv)
     message_filters::Subscriber<Detection2D> bbox_info(nh_, tracked_bbox_topic, 1);
 
     Pose_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>(pose_topic, 1);
+    Heading_angle = nh_.advertise<std_msgs::Float32>(heading_angle_topic,1);
     
     typedef sync_policies::ApproximateTime<Image, Image, Detection2D> MySyncPolicy;
     Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), color_sub, depth_sub, bbox_info);

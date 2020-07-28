@@ -4,6 +4,7 @@
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/TimeReference.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/types.hpp>
@@ -162,9 +163,9 @@ public:
     cv::putText(img_image, text, cv::Point(10, window_size.height - status_bar_height / 2 + 2), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar::all(255), 1, 8);
   }
 
-  void bboxCallback(const std_msgs::Int8::ConstPtr& msg)
+  void bboxCallback(const sensor_msgs::TimeReference::ConstPtr& msg)
   { 
-    bbox_status_text = (msg->data == 1) ? bbox_status1 : bbox_status0;
+    bbox_status_text = (msg->source == "1") ? bbox_status1 : bbox_status0;
     
 
   }
