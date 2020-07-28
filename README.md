@@ -1,9 +1,9 @@
 # contact_inspection_trackers
 
 ## 1 Requirements
-  Ubuntu 64-bit 16.04 or 18.04. ROS Kinetic or Melodic. [ROS install](http://wiki.ros.org/ROS/Installation)
-  PCL 1.2 or higher
-  OpenCV  
+    Ubuntu 64-bit 16.04 or 18.04. ROS Kinetic or Melodic. [ROS install](http://wiki.ros.org/ROS/Installation)
+    PCL 1.2 or higher
+    OpenCV  
   
 ## 2 Build 
     cd ~/catkin_ws/src
@@ -23,25 +23,25 @@
     "6": MedianFlow
     "7": MOSSE
 ## 4 Data 
-https://drive.google.com/drive/u/0/folders/1cx-L1gHehPKWpD6fyoQyGOGPGdAsmsHt
+    (https://drive.google.com/drive/u/0/folders/1cx-L1gHehPKWpD6fyoQyGOGPGdAsmsHt)
 
 ## Topics Information 
 
-Topics subscribed to from bag file:
-Color Image msgs: "/front_depth_camera/color/image_raw"
-Depth Image msgs: "/front_depth_camera/aligned_depth_to_color/image_raw"
+    Topics subscribed to from bag file:
+    Color Image msgs: "/front_depth_camera/color/image_raw"
+    Depth Image msgs: "/front_depth_camera/aligned_depth_to_color/image_raw"
 
-Modify perception.launch if these topics are different
+    Modify perception.launch if these topics are different
 
-Subscribe to:
-"point_cloud/pose": For pose information of the plane segmente from poi generated from ROI
-"/perception/tracker/bboxOut": For bbox info from tracker
-"/perception/tracker/bboxImage": For image annoated with tracked bbox
-"/perception/tracker/status": For status of tracker. To check if tracking was successful 
+    Subscribe to:
+    "point_cloud/pose": For pose information of the plane segmente from poi generated from ROI
+    "/perception/tracker/bboxOut": For bbox info from tracker
+    "/perception/tracker/bboxImage": For image annoated with tracked bbox
+    "/perception/tracker/status": For status of tracker. To check if tracking was successful 
 
 
 ## TODO
-1. Improve tracker performance
-2. Heading estimation 
-3. point cloud filtering
+    1. Improve tracker performance
+    2. Heading estimation 
+    3. point cloud filtering
     
