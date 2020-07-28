@@ -34,7 +34,7 @@
     Modify perception.launch if these topics are different
 
     Subscribe to:
-    "point_cloud/pose": For pose information of the plane segmente from poi generated from ROI
+    "point_cloud/pose": For pose information of the plane segmented from poi generated from ROI
     "/perception/tracker/bboxOut": For bbox info from tracker
     "/perception/tracker/bboxImage": For image annoated with tracked bbox
     "/perception/tracker/status": For status of tracker. To check if tracking was successful 
@@ -42,6 +42,5 @@
 
 ## TODO
     1. Improve tracker performance
-    2. Heading estimation 
-    3. point cloud filtering
+    2. Point cloud filtering
     
