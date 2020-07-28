@@ -1,17 +1,17 @@
 # contact_inspection_trackers
 
-## 1 Requirements
+## 1. Requirements
     Ubuntu 64-bit 16.04 or 18.04. ROS Kinetic or Melodic. [ROS install](http://wiki.ros.org/ROS/Installation)
     PCL 1.2 or higher
     OpenCV  
   
-## 2 Build 
+## 2. Build 
     cd ~/catkin_ws/src
     git clone https://github.com/sanjanamallya/contact_inspection_trackers.git
     cd ../
     catkin build
     source ~/catkin_ws/devel/setup.bash
-## 3 Run 
+## 3. Run 
     roslaunch 2020_trackers perception.launch tracker:="args"    
     
     args options for trackers:
@@ -22,10 +22,10 @@
     "5": TLD
     "6": MedianFlow
     "7": MOSSE
-## 4 Data 
+## 4. Data 
 (https://drive.google.com/drive/u/0/folders/1cx-L1gHehPKWpD6fyoQyGOGPGdAsmsHt)
 
-## Topics Information 
+## 5. Topics Information 
 
     Topics subscribed to from bag file:
     Color Image msgs: "/front_depth_camera/color/image_raw"
