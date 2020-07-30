@@ -109,7 +109,7 @@ void initialize_heading_angle_with_nan(std_msgs::Float32& ang){
 
 void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth) //, const Detection2D::ConstPtr& depth_ptr,const TimeReference::ConstPtr& status)
         {
-            cerr<<"Hello callback"<<endl;
+//             cerr<<"Hello callback"<<endl;
  
             cv_bridge::CvImagePtr color_ptr;
             cv_bridge::CvImagePtr depth_ptr;
