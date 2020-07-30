@@ -117,7 +117,7 @@ class csrt_tracker(object):
             "6": cv2.TrackerMedianFlow_create,
             "7": cv2.TrackerMOSSE_create
 	        }
-        # print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
+        print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
         self._tracker = OPENCV_OBJECT_TRACKERS[self.tracker]()
         
 
@@ -267,8 +267,6 @@ class csrt_tracker(object):
 
     def write_pointcloud(self, vertices, colors, filename):
         colors = colors.reshape(-1,3)
-        # print(("_"*20))
-        # print(vertices.reshape(-1,3))
         vertices = np.hstack([vertices.reshape(-1,3),colors])
         
 
@@ -285,8 +283,6 @@ class csrt_tracker(object):
             '''
         
         with open(filename, 'w') as f:
-            # print("-"*10)
-            # print("writing")
             f.write(ply_header %dict(vert_num=len(vertices)))
             np.savetxt(f,vertices,'%f %f %f %d %d %d')
 
@@ -297,27 +293,22 @@ class csrt_tracker(object):
         depth_image = self._bridge.imgmsg_to_cv2(
             depth_msg, "8UC1"
         )
+
+        ## Enable to reporject depth map th 3D
+        """
         points_3D = cv2.reprojectImageTo3D(depth_image, self.Q2)
         mask_map = depth_image > 0
         output_points = points_3D[mask_map]
         output_colors = color_image[mask_map]
-        # print(type(points_3D), points_3D.shape, points_3D[100][100], type(points_3D[0][0]))
+        cv2.imwrite("color.jpg", color_image)
+        cv2.imwrite("depth.jpg", depth_image)
 
-        # depth_f = np.expand_dims(depth_image, axis= 2)
-
-        cv2.imwrite("/home/sanjana/trackers/src/contact_inspection_trackers/color.jpg", color_image)
-        cv2.imwrite("/home/sanjana/trackers/src/contact_inspection_trackers/depth.jpg", depth_image)
-
-
-        output_file = "/home/sanjana/trackers/src/contact_inspection_trackers/reconstructed.ply"
-
-        # self.write_pointcloud(output_points, output_colors, output_file)
         if self.savepointcloud:
-            output_file = "/home/sanjana/trackers/src/contact_inspection_trackers/reconstructed.ply"
+            # output_file = "reconstructed.ply"
             print ("\n Creating the output file... \n")
             self.write_pointcloud(output_points, output_colors, output_file)
             self.savepointcloud = False
-
+        """
 
         final_bbox = None
 
@@ -392,6 +383,7 @@ class csrt_tracker(object):
             T.header.stamp = depth_msg.header.stamp
             T.source = str(self._current_status)
             self._pub_status.publish(T)
+
             # cv2.imshow('depth',depth_image)
             # cv2.waitKey()
 
@@ -405,7 +397,6 @@ class csrt_tracker(object):
 
                 cv2.circle(color_image, center, 3, (255, 0, 0), 2)
 
-                # print("Publishing tracked bbox")
                 imgmsg = self._bridge.cv2_to_imgmsg(
                     color_image, 'rgb8'
                 )

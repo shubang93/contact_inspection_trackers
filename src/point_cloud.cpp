@@ -188,7 +188,7 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
             }
             cloud->width = cloud->points.size();
             cloud->height = 1;
-            pcl::io::savePLYFileBinary("/home/sanjana/trackers/src/contact_inspection_trackers/output2.ply", *cloud);
+            // pcl::io::savePLYFileBinary("/home/sanjana/trackers/src/contact_inspection_trackers/output2.ply", *cloud);
 
             // Code to segment out dominant plane 
 
@@ -221,7 +221,7 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
                 extract.setIndices (inliers);
                 extract.setNegative (false);
                 extract.filter (*cloud_p);
-                pcl::io::savePLYFileBinary("/home/sanjana/trackers/src/contact_inspection_trackers/segmented_plane.ply", *cloud_p);
+                // pcl::io::savePLYFileBinary("/home/sanjana/trackers/src/contact_inspection_trackers/segmented_plane.ply", *cloud_p);
                 std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << std::endl;
 
                 pcl::PointXYZRGB p_centroid;          
