@@ -14,3 +14,6 @@ src/dump.cpp
 src/opencv.xyz
 segmented_plane.ply
 src/dump.cpp.cpp
+.vscode/launch.json
+.vscode/tasks.json
+launch/perception_only.launch

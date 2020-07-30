@@ -185,11 +185,11 @@ class csrt_tracker(object):
         )
 
         self._pub_result_img = rospy.Publisher(
-            "/perception/tracker/bboxImage", Image, queue_size=10
+            "/perception/tracker/bboxImage", Image, queue_size=30
         )
 
         self._pub_status = rospy.Publisher(
-            "/perception/tracker/status", TimeReference, queue_size=10
+            "/perception/tracker/status", TimeReference, queue_size=30
 
         )
 
