@@ -12,13 +12,7 @@
         <param name="~publish_tracked" value="True"/>
     </node>
 
-    <!-- launch ROI selector -->
-    <node name="roi_select_gui" pkg="2020_trackers" type="2020_trackers_gui">
-        <remap from="/camera" to="/front_depth_camera/color/image_raw"/>
-    </node>
-
-
-    <node name="point_cloud_save" pkg="2020_trackers" type="2020_trackers_point_cloud">
+    <node name="depth_estimation" pkg="2020_trackers" type="2020_trackers_point_cloud">
         <param name="~color_image_topic" value="/front_depth_camera/color/image_raw"/>
         <param name="~depth_image_topic" value="/front_depth_camera/aligned_depth_to_color/image_raw"/>
     </node>

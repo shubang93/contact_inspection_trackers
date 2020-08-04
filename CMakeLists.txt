@@ -151,8 +151,8 @@ add_executable(${PROJECT_NAME}_gui
 add_executable(${PROJECT_NAME}_d435_gui
   src/roi_selector_gui_d435.cpp
 )
-add_executable(${PROJECT_NAME}_point_cloud 
-    src/point_cloud.cpp
+add_executable(${PROJECT_NAME}_rgbd_depth
+    src/depth_from_rgbd.cpp
 )
 
 
@@ -179,7 +179,7 @@ target_link_libraries(${PROJECT_NAME}_d435_gui
   ${OpenCV_LIBRARIES}
 )
 
-target_link_libraries(${PROJECT_NAME}_point_cloud ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_rgbd_depth ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
 
 #############
 ## Install ##

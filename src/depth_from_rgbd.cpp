@@ -53,8 +53,8 @@ using namespace std;
 using namespace cv;
 
 
-const std::string color_image_topic = "/front_depth_camera/color/image_raw";
-const std::string depth_image_topic = "/front_depth_camera/aligned_depth_to_color/image_raw";
+const std::string color_image_topic = "/d435i/color/image_raw";
+const std::string depth_image_topic = "/d435i/aligned_depth_to_color/image_raw";
 const std::string tracked_bbox_topic = "/perception/tracker/bboxOut";
 const std::string pose_topic = "point_cloud/pose";
 const std::string heading_angle_topic = "point_cloud/heading_angle";
