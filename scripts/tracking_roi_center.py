@@ -256,45 +256,30 @@ class csrt_tracker(object):
         final_bbox = None
 
         if self._lock_ROI:
-            print("Trackig")
-            if self._inital_bbox is None:
 
-                self.init_variables_hard(False)
-                center = ( rgb_msg.width//2, rgb_msg.height//2)
-                width = rgb_msg.width//10
-                height = rgb_msg.height//10
+            self.init_variables_hard(False)
+            center = ( rgb_msg.width//2, rgb_msg.height//2)
+            width = rgb_msg.width//10
+            height = rgb_msg.height//10
 
-                rospy.loginfo("BBox Received")
-                self._inital_bbox = (
-                    int(center[0] - width / 2),
-                    int(center[1] - height / 2),
-                    width,
-                    height,
-                )
+            self._inital_bbox = (
+                int(center[0] - width / 2),
+                int(center[1] - height / 2),
+                width,
+                height,
+            )
 
-            if self._is_first_frame and self._inital_bbox is not None:
-                rospy.loginfo("Initializing tracker")
-                current_bbox = self._inital_bbox
-                bbox_center = self.calculate_bbox_center(current_bbox)
-                self._tracker.init(color_image, current_bbox)
-                self._is_first_frame = False
-                final_bbox = current_bbox   
+            rospy.loginfo("Initializing tracker")
+            current_bbox = self._inital_bbox
+            bbox_center = self.calculate_bbox_center(current_bbox)
+            self._is_first_frame = False
+            final_bbox = current_bbox   
 
-            elif not self._is_first_frame:
-
-                ok, self.tracker_suggested_bbox = self._tracker.update(
-                        color_image
-                    )
-
-                if ok:
-                    final_bbox = self.tracker_suggested_bbox
-
-                else:
-                    self._current_status = 0
-                    T = TimeReference()
-                    T.header.stamp = depth_msg.header.stamp
-                    T.source = str(self._current_status)
-                    self._pub_status.publish(T)
+            self._current_status = 1
+            T = TimeReference()
+            T.header.stamp = depth_msg.header.stamp
+            T.source = str(self._current_status)
+            self._pub_status.publish(T)
 
 
             if final_bbox is not None:
@@ -339,13 +324,7 @@ class csrt_tracker(object):
 
                 self._pub_bbox.publish(bbox_message)
 
-                T = TimeReference()
-                T.header.stamp = depth_msg.header.stamp
-                T.source = str(self._current_status)
-                self._pub_status.publish(T)
 
-                # cv2.imshow('depth',depth_image)
-                # cv2.waitKey()
 
                 if self.publish_result_img:
                     final_bbox = tuple([int(i) for i in final_bbox])
@@ -358,7 +337,8 @@ class csrt_tracker(object):
                     cv2.circle(color_image, center, 3, (255, 0, 0), 2)
 
                     cv2.imshow('TRACKING',color_image)
-                    cv2.waitKey()
+                    cv2.waitKey(1)
+
 
                     imgmsg = self._bridge.cv2_to_imgmsg(
                         color_image, 'rgb8'
