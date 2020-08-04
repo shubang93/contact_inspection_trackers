@@ -12,6 +12,10 @@
     catkin build
     source ~/catkin_ws/devel/setup.bash
 ## 3. Run 
+    To run GUI free tracking that just latches to a ROI around the center of the Image:
+    roslaunch 2020_trackers perception_roi_center.launch tracker:="1"
+
+    To utilize GUI and a tracking algorithm:
     roslaunch 2020_trackers perception.launch tracker:="args"    
     
     args options for trackers:
