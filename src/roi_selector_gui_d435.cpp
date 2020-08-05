@@ -75,7 +75,7 @@ private:
   image_transport::Publisher image_pub_;
   ros::Publisher rect_pub_;
   ros::Subscriber bbox_sub_;
-  
+
 public:
 
   static void PrintCenteredText(cv::Mat img, std::string text, int font, float size, cv::Scalar color, int x, int y, int w, int h)
@@ -87,7 +87,7 @@ public:
     cv::putText(img, text, cv::Point(text_x, text_y), font, size, color, 1, 8);
   }
 
-  static void MouseEventHandler(int event, int x, int y, int flags, void* userdata)
+  static void MouseEventHandler(int event, int x, int y, int flags, __attribute__((unused)) void* userdata)
   {
     if (event == cv::EVENT_RBUTTONDOWN)
     {
@@ -163,19 +163,19 @@ public:
   }
 
   void bboxCallback(const std_msgs::Int8::ConstPtr& msg)
-  { 
+  {
     bbox_status_text = (msg->data == 1) ? bbox_status1 : bbox_status0;
-    
+
 
   }
 
 
   ROISelector()
     : it_(nh_)
-  { 
+  {
     // Subscribe to input video feed and publish the selection
     image_sub_ = it_.subscribe(subscribed_topic, 1,
-      &ROISelector::imageCb, this); //subscribes to camera feed 
+      &ROISelector::imageCb, this); //subscribes to camera feed
     image_pub_ = it_.advertise(publish_topic + "image", 1); //publishes annotated bbox image
     rect_pub_ = nh_.advertise<vision_msgs::BoundingBox2D>(publish_topic + "rect", 1); //publishes annotated bbox image
     bbox_sub_ = nh_.subscribe(bbox_topic, 10, &ROISelector::bboxCallback, this);
@@ -305,7 +305,7 @@ public:
     int key_pressed = cv::waitKey(1);
     if (key_pressed == 27) exit(0);
   }
- 
+
 };
 
 int main(int argc, char** argv)

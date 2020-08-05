@@ -27,7 +27,6 @@ find_package(PCL 1.2 REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
-
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
@@ -113,10 +112,15 @@ generate_dynamic_reconfigure_options(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES mbz2020_perception
-CATKIN_DEPENDS cv_bridge image_transport roscpp rospy std_msgs sensor_msgs dynamic_reconfigure vision_msgs
-#  DEPENDS system_lib
+  CATKIN_DEPENDS
+    cv_bridge
+    image_transport
+    roscpp
+    rospy
+    std_msgs
+    sensor_msgs
+    dynamic_reconfigure
+    vision_msgs
 )
 
 ###########
@@ -126,7 +130,6 @@ CATKIN_DEPENDS cv_bridge image_transport roscpp rospy std_msgs sensor_msgs dynam
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -164,13 +167,11 @@ add_executable(${PROJECT_NAME}_rgbd_depth
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_d435_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-## Specify libraries to link a library or executable target against
 
+## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_gui
- 
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES}
 )
@@ -179,7 +180,11 @@ target_link_libraries(${PROJECT_NAME}_d435_gui
   ${OpenCV_LIBRARIES}
 )
 
-target_link_libraries(${PROJECT_NAME}_rgbd_depth ${PCL_LIBRARIES} ${OpenCV_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME}_rgbd_depth
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -190,17 +195,18 @@ target_link_libraries(${PROJECT_NAME}_rgbd_depth ${PCL_LIBRARIES} ${OpenCV_LIBRA
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# install(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(PROGRAMS
+   scripts/tracking_roi_center.py
+   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
-#   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+install(TARGETS ${PROJECT_NAME}_rgbd_depth
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install (DIRECTORY launch cfg
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 ## Mark cpp header files for installation
 # install(DIRECTORY include/${PROJECT_NAME}/
