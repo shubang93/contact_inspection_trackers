@@ -17,3 +17,25 @@ src/dump.cpp.cpp
 .vscode/launch.json
 .vscode/tasks.json
 launch/perception_only.launch
+
+.catkin_tools
+build
+install
+logs
+devel
+*~
+*.autosave
+*.pyc
+*.swp
+*.user
+.#*
+.cproject
+.project
+qtcreator-*
+.vscode*
+.idea*
+
+# YCM config files
+*.ycm*
+
+__pycache__
