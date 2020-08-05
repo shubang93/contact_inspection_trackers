@@ -106,19 +106,15 @@ class csrt_tracker(object):
             "6": cv2.TrackerMedianFlow_create,
             "7": cv2.TrackerMOSSE_create
 	        }
-        print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
         self._tracker = OPENCV_OBJECT_TRACKERS[self.tracker]()
-
 
         self._is_first_frame = True
         self._last_bbox = None
         self._current_status = 1
 
-
         self._has_scale_changed = False
         self._scale = 1.0
         self._fallback_scale = 0.4
-
 
         # Uncomment to project depthmap into point cloud
         """
@@ -266,7 +262,7 @@ class csrt_tracker(object):
                 height,
             )
 
-            rospy.loginfo("Initializing tracker")
+            # rospy.loginfo("Initializing tracker")
             current_bbox = self._inital_bbox
             bbox_center = self.calculate_bbox_center(current_bbox)
             self._is_first_frame = False
