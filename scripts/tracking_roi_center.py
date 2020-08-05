@@ -15,10 +15,7 @@ from std_msgs.msg import Float32, Int8
 
 
 """
-
-
-
-Purpose of this ROS Node is to track objects with a CSRT tracker but without depth information and therefore without 
+Purpose of this ROS Node is to track objects with a CSRT tracker but without depth information and therefore without
 depth-reliant scaling. bbox size-dependent scaling functionality remains. [This ROS Node is adapted from Lorenz Stangier's tracker_scale.py ("implements a object tracker that used a depth image
 to resize it's generated bounding box")]]
 
@@ -50,7 +47,7 @@ class csrt_tracker(object):
     # Initilization Functions
     #
 
-    def __init__(self,  tracker="1",debug=False):
+    def __init__(self,  tracker="2",debug=False):
         self.tracker = tracker
         self.init_variables_hard(debug)
         self.init_subscribers()
@@ -91,7 +88,7 @@ class csrt_tracker(object):
             self.min_depth = 0.5
 
         self._bridge = CvBridge()
- 
+
 
         self._lock_ROI = True
         self._inital_bbox = None
@@ -101,7 +98,7 @@ class csrt_tracker(object):
         self._current_distance = -1
         self._previous_distance = -1
         OPENCV_OBJECT_TRACKERS = {
-            "1": cv2.TrackerCSRT_create,
+            "1": cv2.TrackerKCF_create,
             "2": cv2.TrackerKCF_create,
             "3": cv2.TrackerBoosting_create,
             "4": cv2.TrackerMIL_create,
@@ -111,7 +108,7 @@ class csrt_tracker(object):
 	        }
         print("TRAKER CURRENTLY BEING UTILIZED", OPENCV_OBJECT_TRACKERS[self.tracker])
         self._tracker = OPENCV_OBJECT_TRACKERS[self.tracker]()
-        
+
 
         self._is_first_frame = True
         self._last_bbox = None
@@ -133,7 +130,7 @@ class csrt_tracker(object):
 
         self.Q2 = np.float32([[1,0,0,0],
         [0,-1,0,0],
-        [0,0,self.focal_length*0.018,0], #Focal length multiplication obtained experimentally. 
+        [0,0,self.focal_length*0.018,0], #Focal length multiplication obtained experimentally.
         [0,0,0,1]])
         """
 
@@ -211,7 +208,7 @@ class csrt_tracker(object):
     def write_pointcloud(self, vertices, colors, filename):
         colors = colors.reshape(-1,3)
         vertices = np.hstack([vertices.reshape(-1,3),colors])
-        
+
 
         ply_header = '''ply
             format ascii 1.0
@@ -224,14 +221,14 @@ class csrt_tracker(object):
             property uchar blue
             end_header
             '''
-        
+
         with open(filename, 'w') as f:
             f.write(ply_header %dict(vert_num=len(vertices)))
             np.savetxt(f,vertices,'%f %f %f %d %d %d')
 
     def got_image(self, rgb_msg, depth_msg):
 
-    
+
         color_image = self._bridge.imgmsg_to_cv2(rgb_msg, '8UC3')
         depth_image = self._bridge.imgmsg_to_cv2(
             depth_msg, "8UC1"
@@ -273,7 +270,7 @@ class csrt_tracker(object):
             current_bbox = self._inital_bbox
             bbox_center = self.calculate_bbox_center(current_bbox)
             self._is_first_frame = False
-            final_bbox = current_bbox   
+            final_bbox = current_bbox
 
             self._current_status = 1
             T = TimeReference()
@@ -313,8 +310,8 @@ class csrt_tracker(object):
                 # Initialize header info with that of depthmap's
                 bbox_message.header.stamp = depth_msg.header.stamp
                 bbox_message.header.seq = "bbox_INFO"
-                
-                # bbox info 
+
+                # bbox info
                 bbox_message.bbox.size_x = final_bbox[2]
                 bbox_message.bbox.size_y = final_bbox[3]
 
@@ -343,9 +340,9 @@ class csrt_tracker(object):
                     imgmsg = self._bridge.cv2_to_imgmsg(
                         color_image, 'rgb8'
                     )
-    
+
                     self._pub_result_img.publish(imgmsg)
-    
+
 if __name__ == "__main__":
     rospy.init_node("csrt_tracker")
     rospy.loginfo("Starting csrt tracker...")
