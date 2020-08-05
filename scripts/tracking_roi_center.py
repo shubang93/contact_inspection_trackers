@@ -333,8 +333,8 @@ class csrt_tracker(object):
 
                     cv2.circle(color_image, center, 3, (255, 0, 0), 2)
 
-                    cv2.imshow('TRACKING',color_image)
-                    cv2.waitKey(1)
+                    # cv2.imshow('TRACKING',color_image)
+                    # cv2.waitKey(1)
 
 
                     imgmsg = self._bridge.cv2_to_imgmsg(
