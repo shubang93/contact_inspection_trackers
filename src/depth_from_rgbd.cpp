@@ -20,6 +20,9 @@
 #include <opencv2/core/types.hpp>
 #include <opencv2/calib3d.hpp>
 
+// BAD HEADERS
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <pcl/ModelCoefficients.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
@@ -28,6 +31,7 @@
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/extract_indices.h>
+#pragma GCC diagnostic pop
 
 #include <pcl/point_types.h>
 #include <pcl/io/ply_io.h>
@@ -61,7 +65,7 @@ const std::string heading_angle_topic = "point_cloud/heading_angle";
 const std::string tracker_status_topic = "/perception/tracker/status";
 
 
-double focal_length = 619.2664184570312; 
+double focal_length = 619.2664184570312;
 
 Vector3Stamped Pose_center;
 std_msgs::Float32 heading_angle;
@@ -82,15 +86,15 @@ void MatType( cv::Mat inputMat )
     uchar depth = inttype & CV_MAT_DEPTH_MASK;
     uchar chans = 1 + (inttype >> CV_CN_SHIFT);
     switch ( depth ) {
-        case CV_8U:  r = "8U";   a = "Mat.at<uchar>(y,x)"; break;  
-        case CV_8S:  r = "8S";   a = "Mat.at<schar>(y,x)"; break;  
-        case CV_16U: r = "16U";  a = "Mat.at<ushort>(y,x)"; break; 
-        case CV_16S: r = "16S";  a = "Mat.at<short>(y,x)"; break; 
-        case CV_32S: r = "32S";  a = "Mat.at<int>(y,x)"; break; 
-        case CV_32F: r = "32F";  a = "Mat.at<float>(y,x)"; break; 
-        case CV_64F: r = "64F";  a = "Mat.at<double>(y,x)"; break; 
-        default:     r = "User"; a = "Mat.at<UKNOWN>(y,x)"; break; 
-    }   
+        case CV_8U:  r = "8U";   a = "Mat.at<uchar>(y,x)"; break;
+        case CV_8S:  r = "8S";   a = "Mat.at<schar>(y,x)"; break;
+        case CV_16U: r = "16U";  a = "Mat.at<ushort>(y,x)"; break;
+        case CV_16S: r = "16S";  a = "Mat.at<short>(y,x)"; break;
+        case CV_32S: r = "32S";  a = "Mat.at<int>(y,x)"; break;
+        case CV_32F: r = "32F";  a = "Mat.at<float>(y,x)"; break;
+        case CV_64F: r = "64F";  a = "Mat.at<double>(y,x)"; break;
+        default:     r = "User"; a = "Mat.at<UKNOWN>(y,x)"; break;
+    }
     r += "C";
     r += (chans+'0');
     std::cout << "Mat is of type " << r << " and should be accessed with " << a << endl;
@@ -110,7 +114,7 @@ void initialize_heading_angle_with_nan(std_msgs::Float32& ang){
 void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth) //, const Detection2D::ConstPtr& depth_ptr,const TimeReference::ConstPtr& status)
         {
 //             cerr<<"Hello callback"<<endl;
- 
+
             cv_bridge::CvImagePtr color_ptr;
             cv_bridge::CvImagePtr depth_ptr;
             color_ptr = cv_bridge::toCvCopy(color, image_encodings::BGR8);
@@ -135,7 +139,7 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
             pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
             reprojectImageTo3D(depth_ptr->image, XYZ, Q2, false, CV_32F );
 
-            // Check data type for precision 
+            // Check data type for precision
             // MatType(color_ptr->image);
             // MatType(depth_ptr->image);
             // MatType(XYZ);
@@ -147,11 +151,11 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
                 {
                     pcl::PointXYZRGB p;
 
-                    //The coordinate of the point is taken from the depth map                   
+                    //The coordinate of the point is taken from the depth map
 
                     if ((depth_ptr->image.at<float>(i,j))>0)
                     {
-                                                
+
                         cv::Vec3f pixeldepth = XYZ.at<cv::Vec3f>(i,j);
                         p.x = pixeldepth[0];
                         p.y = pixeldepth[1];
@@ -171,28 +175,28 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
                         p.x = float(0);
                         p.y = float(0);
                         p.z = float(0);
-                        
+
                         // Enable for PointXYZRGB type
                         p.r = static_cast<uint8_t>(0);
                         p.g = static_cast<uint8_t>(0);
                         p.b = static_cast<uint8_t>(0);
                     }
 
-                    
+
                     // Insert point in the cloud, cutting the points that are too distant
                     if ((abs(p.z)<300) && (abs(p.z)>0))
                     {
                         cloud->points.push_back(p);
-                    }                   
+                    }
                 }
             }
             cloud->width = cloud->points.size();
             cloud->height = 1;
             // pcl::io::savePLYFileBinary("/home/sanjana/trackers/src/contact_inspection_trackers/output2.ply", *cloud);
 
-            // Code to segment out dominant plane 
+            // Code to segment out dominant plane
 
-            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZRGB>);            
+            pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p (new pcl::PointCloud<pcl::PointXYZRGB>);
             pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
             pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
 
@@ -203,7 +207,7 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
             seg.setOptimizeCoefficients (true);
 
             // Mandatory
-            // Set model and method 
+            // Set model and method
             seg.setModelType (pcl::SACMODEL_PLANE);
             seg.setMethodType (pcl::SAC_RANSAC);
             seg.setMaxIterations (1000);
@@ -224,7 +228,7 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
                 // pcl::io::savePLYFileBinary("/home/sanjana/trackers/src/contact_inspection_trackers/segmented_plane.ply", *cloud_p);
                 std::cerr << "PointCloud representing the planar component: " << cloud_p->width * cloud_p->height << " data points." << std::endl;
 
-                pcl::PointXYZRGB p_centroid;          
+                pcl::PointXYZRGB p_centroid;
                 pcl::computeCentroid(*cloud, inliers->indices, p_centroid);
 
                 if (p_centroid.z>0 && p_centroid.z<500 )
@@ -240,7 +244,7 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
                         heading_angle.data = acos(C/ sqrt(pow(A,2)+pow(B,2)+pow(C,2)))* 180.0 / PI;
                         std::cerr<<A<<" "<< B<< " "<<C<<" "<< heading_angle.data <<endl;
                         Pose_pub_.publish(Pose_center);
-                        Heading_angle.publish(heading_angle);   
+                        Heading_angle.publish(heading_angle);
                     }
                 else
                     {
@@ -256,13 +260,13 @@ void construct_point_cloud(const ImageConstPtr& color,const ImageConstPtr& depth
                 initialize_heading_angle_with_nan(heading_angle);
                 initialize_pose_with_nan(Pose_center);
                 Pose_center.header.stamp  = depth_ptr->header.stamp;
-            }            
+            }
 
         }
-       
+
 
 int main(int argc, char** argv)
-{   
+{
     ROS_INFO("Hello main");
     ros::init(argc, argv, "point_cloud_save");
 
@@ -275,7 +279,7 @@ int main(int argc, char** argv)
 
     typedef sync_policies::ApproximateTime<Image, Image> MySyncPolicy;
     Synchronizer<MySyncPolicy> sync(MySyncPolicy(2), color_sub, depth_sub);
-    
+
     // typedef sync_policies::ApproximateTime<Image, Image, Detection2D> MySyncPolicy;
     // Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), color_sub, depth_sub, bbox_info);
     sync.registerCallback(boost::bind(&construct_point_cloud, _1, _2));
