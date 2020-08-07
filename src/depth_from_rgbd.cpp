@@ -32,6 +32,8 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/conversions.h>
+#include <pcl_conversions/pcl_conversions.h>
 #pragma GCC diagnostic pop
 // END BAD HEADERS
 
@@ -41,6 +43,7 @@
 
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/PointCloud2.h>
 
 #include <geometry_msgs/Vector3Stamped.h>
 #include <image_transport/image_transport.h>
@@ -55,8 +58,10 @@ using namespace geometry_msgs;
 using namespace std;
 using namespace cv;
 
-const std::string color_image_topic = "/d435i/color/image_raw";
+// const std::string color_image_topic = "/d435i/color/image_raw";
 const std::string depth_image_topic = "/d435i/aligned_depth_to_color/image_raw";
+const std::string point_cloud_topic = "point_cloud/pointcloud";
+const std::string seg_point_cloud_topic = "point_cloud/segpointcloud";
 const std::string pose_topic = "point_cloud/pose";
 const std::string heading_angle_topic = "point_cloud/heading_angle";
 
@@ -64,13 +69,17 @@ const double focal_length = 619.2664184570312;
 
 Vector3Stamped Pose_center;
 std_msgs::Float32 heading_angle;
+sensor_msgs::PointCloud2 CLOUD;
+sensor_msgs::PointCloud2 SEGCLOUD;
 ros::Publisher Pose_pub_;
 ros::Publisher Heading_angle;
+ros::Publisher point_cloud;
+ros::Publisher seg_point_cloud;
 
 double Q[4][4] = {
     {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, focal_length * 0.018, 0}, {0, 0, 0, 1}};
 
-// TODO: ReAD FOCAL lENGTH FROM CAmERa INFO
+// TODO: Read focal length from camera info
 cv::Mat Q2 = cv::Mat(4, 4, CV_64F, Q);
 
 void MatType(cv::Mat inputMat) {
@@ -127,11 +136,12 @@ void initialize_heading_angle_with_nan(std_msgs::Float32& ang) {
     ang.data = numeric_limits<float>::quiet_NaN();
 }
 
-void construct_point_cloud(const ImageConstPtr& color,
-                           const ImageConstPtr& depth) {
-    cv_bridge::CvImagePtr color_ptr;
+void construct_point_cloud(const ImageConstPtr& depth) {
+
+    // cv_bridge::CvImagePtr color_ptr;
+    // color_ptr = cv_bridge::toCvCopy(color, image_encodings::BGR8);
+
     cv_bridge::CvImagePtr depth_ptr;
-    color_ptr = cv_bridge::toCvCopy(color, image_encodings::BGR8);
 
     // Constuct new ros type for seamless encoding from 16UC1-> 8UC1(MONO8)
     if (depth->encoding == "16UC1") {
@@ -150,8 +160,8 @@ void construct_point_cloud(const ImageConstPtr& color,
     CV_Assert(!depth_ptr->image.empty());
     cv::Mat XYZ(depth_ptr->image.size(), CV_32FC3);
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
-        new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+        new pcl::PointCloud<pcl::PointXYZ>);
 
     reprojectImageTo3D(depth_ptr->image, XYZ, Q2, false, CV_32F);
 
@@ -163,7 +173,7 @@ void construct_point_cloud(const ImageConstPtr& color,
     // Reconstruct PointCloud with the depthmap points
     for (int i = 0; i < depth_ptr->image.rows; ++i) {
         for (int j = 0; j < depth_ptr->image.cols; ++j) {
-            pcl::PointXYZRGB p;
+            pcl::PointXYZ p;
 
             // The coordinate of the point is taken from the depth map
 
@@ -177,10 +187,10 @@ void construct_point_cloud(const ImageConstPtr& color,
                 // Coloring the point with the corrispondent point in the
                 // rectified image
                 // Enable for PointXYZRGB type
-                cv::Vec3b pixel = color_ptr->image.at<cv::Vec3b>(i, j);
-                p.r = static_cast<uint8_t>(pixel[2]);
-                p.g = static_cast<uint8_t>(pixel[1]);
-                p.b = static_cast<uint8_t>(pixel[0]);
+                // cv::Vec3b pixel = color_ptr->image.at<cv::Vec3b>(i, j);
+                // p.r = static_cast<uint8_t>(pixel[2]);
+                // p.g = static_cast<uint8_t>(pixel[1]);
+                // p.b = static_cast<uint8_t>(pixel[0]);
             } else {
                 // ROS_INFO("%f",depth_ptr->image.at<float>(i,j));
                 p.x = float(0);
@@ -188,9 +198,9 @@ void construct_point_cloud(const ImageConstPtr& color,
                 p.z = float(0);
 
                 // Enable for PointXYZRGB type
-                p.r = static_cast<uint8_t>(0);
-                p.g = static_cast<uint8_t>(0);
-                p.b = static_cast<uint8_t>(0);
+                // p.r = static_cast<uint8_t>(0);
+                // p.g = static_cast<uint8_t>(0);
+                // p.b = static_cast<uint8_t>(0);
             }
 
             // Insert point in the cloud, cutting the points that are too
@@ -205,13 +215,13 @@ void construct_point_cloud(const ImageConstPtr& color,
 
     // Code to segment out dominant plane
 
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_p(
-        new pcl::PointCloud<pcl::PointXYZRGB>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p(
+        new pcl::PointCloud<pcl::PointXYZ>);
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
 
     // Create the segmentation object
-    pcl::SACSegmentation<pcl::PointXYZRGB> seg;
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
 
     // Optional
     seg.setOptimizeCoefficients(true);
@@ -223,10 +233,13 @@ void construct_point_cloud(const ImageConstPtr& color,
     seg.setMaxIterations(1000);
     seg.setDistanceThreshold(0.9);
 
-    pcl::ExtractIndices<pcl::PointXYZRGB> extract;
+    pcl::ExtractIndices<pcl::PointXYZ> extract;
     seg.setInputCloud(cloud);
     seg.segment(*inliers, *coefficients);
 
+    pcl::toROSMsg(*cloud,CLOUD);
+    CLOUD.header.frame_id = "d435i_depth_optical_frame";
+    point_cloud.publish(CLOUD);
     if (inliers->indices.size() != 0) {
         // Extract the inliers
         extract.setInputCloud(cloud);
@@ -234,7 +247,12 @@ void construct_point_cloud(const ImageConstPtr& color,
         extract.setNegative(false);
         extract.filter(*cloud_p);
 
-        pcl::PointXYZRGB p_centroid;
+        pcl::toROSMsg(*cloud_p,SEGCLOUD);
+        seg_point_cloud.publish(SEGCLOUD);
+        SEGCLOUD.header.frame_id = "d435i_depth_optical_frame";
+
+
+        pcl::PointXYZ p_centroid;
         pcl::computeCentroid(*cloud, inliers->indices, p_centroid);
 
         if (p_centroid.z > 0 && p_centroid.z < 500) {
@@ -271,16 +289,16 @@ int main(int argc, char** argv) {
     ros::init(argc, argv, "depth_from_rgbd");
 
     ros::NodeHandle nh_;
-    message_filters::Subscriber<Image> color_sub(nh_, color_image_topic, 1);
+   
     message_filters::Subscriber<Image> depth_sub(nh_, depth_image_topic, 1);
 
     Pose_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>(pose_topic, 1);
     Heading_angle = nh_.advertise<std_msgs::Float32>(heading_angle_topic, 1);
+    point_cloud = nh_.advertise<sensor_msgs::PointCloud2>(point_cloud_topic,1);
+    seg_point_cloud = nh_.advertise<sensor_msgs::PointCloud2>(seg_point_cloud_topic,1);
 
-    typedef sync_policies::ApproximateTime<Image, Image> MySyncPolicy;
-    Synchronizer<MySyncPolicy> sync(MySyncPolicy(2), color_sub, depth_sub);
-
-    sync.registerCallback(boost::bind(&construct_point_cloud, _1, _2));
+    image_transport::ImageTransport it(nh_);
+    image_transport::Subscriber sub = it.subscribe(depth_image_topic, 1, construct_point_cloud);
 
     ros::spin();
     return 0;
