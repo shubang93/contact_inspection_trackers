@@ -179,9 +179,9 @@ void construct_point_cloud(const ImageConstPtr& depth) {
 
             if ((depth_ptr->image.at<float>(i, j)) > 0) {
                 cv::Vec3f pixeldepth = XYZ.at<cv::Vec3f>(i, j);
-                p.x = pixeldepth[0];
-                p.y = pixeldepth[1];
-                p.z = pixeldepth[2];
+                p.x = pixeldepth[0]/1000;
+                p.y = pixeldepth[1]/1000;
+                p.z = -pixeldepth[2]/1000;
                 // ROS_INFO("pixel depth %f",pixeldepth[2]);
 
                 // Coloring the point with the corrispondent point in the
