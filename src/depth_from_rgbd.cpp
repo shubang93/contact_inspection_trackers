@@ -34,6 +34,7 @@
 #include <pcl/segmentation/sac_segmentation.h>
 #include <pcl/conversions.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/visualization/cloud_viewer.h>
 #pragma GCC diagnostic pop
 // END BAD HEADERS
 
@@ -58,14 +59,13 @@ using namespace geometry_msgs;
 using namespace std;
 using namespace cv;
 
-// const std::string color_image_topic = "/d435i/color/image_raw";
-const std::string depth_image_topic = "/d435i/aligned_depth_to_color/image_raw";
+
+const std::string depth_image_topic = "/d435i/depth/image_rect_raw";
 const std::string point_cloud_topic = "point_cloud/pointcloud";
 const std::string seg_point_cloud_topic = "point_cloud/segpointcloud";
 const std::string pose_topic = "point_cloud/pose";
 const std::string heading_angle_topic = "point_cloud/heading_angle";
 
-const double focal_length = 619.2664184570312;
 
 Vector3Stamped Pose_center;
 std_msgs::Float32 heading_angle;
@@ -76,11 +76,6 @@ ros::Publisher Heading_angle;
 ros::Publisher point_cloud;
 ros::Publisher seg_point_cloud;
 
-double Q[4][4] = {
-    {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, focal_length * 0.018, 0}, {0, 0, 0, 1}};
-
-// TODO: Read focal length from camera info
-cv::Mat Q2 = cv::Mat(4, 4, CV_64F, Q);
 
 void MatType(cv::Mat inputMat) {
     int inttype = inputMat.type();
@@ -138,8 +133,15 @@ void initialize_heading_angle_with_nan(std_msgs::Float32& ang) {
 
 void construct_point_cloud(const ImageConstPtr& depth) {
 
-    // cv_bridge::CvImagePtr color_ptr;
-    // color_ptr = cv_bridge::toCvCopy(color, image_encodings::BGR8);
+    std::cerr<<"Callback"<<endl;
+    const double focal_length = 350.2664184570312;
+    double Q[4][4] = {
+    {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, focal_length * 0.072, 0}, {0, 0, 0, 1}};
+
+    // TODO: Read focal length from camera info
+    cv::Mat Q2 = cv::Mat(4, 4, CV_64F, Q);
+
+
 
     cv_bridge::CvImagePtr depth_ptr;
 
@@ -171,6 +173,7 @@ void construct_point_cloud(const ImageConstPtr& depth) {
     // MatType(XYZ);
 
     // Reconstruct PointCloud with the depthmap points
+    std::cerr<<"Creating point cloud"<<endl;
     for (int i = 0; i < depth_ptr->image.rows; ++i) {
         for (int j = 0; j < depth_ptr->image.cols; ++j) {
             pcl::PointXYZ p;
@@ -238,8 +241,13 @@ void construct_point_cloud(const ImageConstPtr& depth) {
     seg.segment(*inliers, *coefficients);
 
     pcl::toROSMsg(*cloud,CLOUD);
-    CLOUD.header.frame_id = "d435i_depth_optical_frame";
+    CLOUD.header.frame_id = depth_ptr->header.frame_id;
+    CLOUD.header.stamp = depth_ptr->header.stamp;
     point_cloud.publish(CLOUD);
+
+    pcl::visualization::CloudViewer viewer ("Simple Cloud Viewer");
+    viewer.showCloud (cloud);
+    
     if (inliers->indices.size() != 0) {
         // Extract the inliers
         extract.setInputCloud(cloud);
@@ -255,7 +263,7 @@ void construct_point_cloud(const ImageConstPtr& depth) {
         pcl::PointXYZ p_centroid;
         pcl::computeCentroid(*cloud, inliers->indices, p_centroid);
 
-        if (p_centroid.z > 0 && p_centroid.z < 500) {
+        if (p_centroid.z > 0 && p_centroid.z < 1000) {
             Pose_center.header.stamp = depth_ptr->header.stamp;
             Pose_center.vector.x = round(p_centroid.x);
             Pose_center.vector.y = round(p_centroid.y);
@@ -286,8 +294,9 @@ void construct_point_cloud(const ImageConstPtr& depth) {
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "depth_from_rgbd");
 
+    std::cerr<<"Hello";
+    ros::init(argc, argv, "depth_from_rgbd");
     ros::NodeHandle nh_;
    
     message_filters::Subscriber<Image> depth_sub(nh_, depth_image_topic, 1);
