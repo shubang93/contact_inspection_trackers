@@ -1,6 +1,7 @@
-cd ~/trackers
-rm -rf /build /devel /logs
+cd ~/tracker_sanjana
+catkin clean -y
+source ~/vision_msgs/devel/setup.bash
 catkin build
-source ~/trackers/devel/setup.bash
-cd ~/trackers/src/contact_inspection_trackers 
+source ~/tracker_sanjana/devel/setup.bash
+cd ~/tracker_sanjana/src/contact_inspection_trackers 
 
