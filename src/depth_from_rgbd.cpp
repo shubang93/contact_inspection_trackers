@@ -186,16 +186,10 @@ void construct_point_cloud(const ImageConstPtr& depth, const CameraInfoConstPtr&
 
             if ((depth_ptr->image.at<float>(i, j)) > 0) {
                 cv::Vec3f pixeldepth = XYZ.at<cv::Vec3f>(i, j);
-<<<<<<< HEAD
                 p.x = pixeldepth[0];
                 p.y = -pixeldepth[1];
-                p.z = pixeldepth[2];
-=======
-                p.x = pixeldepth[0]/1000;
-                p.y = pixeldepth[1]/1000;
-                p.z = -pixeldepth[2]/1000;
+                p.z = pixeldepth[2]
                 // ROS_INFO("pixel depth %f",pixeldepth[2]);
->>>>>>> 4e61c1f40a6e0b046808d778b3eca3a9944129f6
 
                   // Coloring the point with the corrispondent point in the
                 // rectified image
