@@ -63,8 +63,8 @@ using namespace std;
 using namespace cv;
 
 
-const std::string depth_image_topic = "/d435i/depth/image_rect_raw";
-const std::string depth_camera_info_topic = "/d435i/depth/camera_info";
+std::string depth_image_topic;
+std::string depth_camera_info_topic;
 const std::string point_cloud_topic = "point_cloud/pointcloud";
 const std::string seg_point_cloud_topic = "point_cloud/segpointcloud";
 const std::string pose_topic = "point_cloud/pose";
@@ -142,7 +142,7 @@ void construct_point_cloud(const ImageConstPtr& depth, const CameraInfoConstPtr&
     std::cerr<<"Focal length"<<focal_length;
 
     double Q[4][4] = {
-    {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, focal_length * 0.062, 0}, {0, 0, 0, 1}};
+    {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, focal_length * 0.078, 0}, {0, 0, 0, 1}};
 
     // TODO: Read focal length from camera info
     cv::Mat Q2 = cv::Mat(4, 4, CV_64F, Q);
@@ -307,18 +307,19 @@ int main(int argc, char** argv) {
 
     std::cerr<<"Hello";
     ros::init(argc, argv, "depth_from_rgbd");
-    ros::NodeHandle nh_;
+    ros::NodeHandle nhPriv("~");
  
-    Pose_pub_ = nh_.advertise<geometry_msgs::Vector3Stamped>(pose_topic, 1);
-    Heading_angle = nh_.advertise<std_msgs::Float32>(heading_angle_topic, 1);
-    point_cloud = nh_.advertise<sensor_msgs::PointCloud2>(point_cloud_topic,1);
-    seg_point_cloud = nh_.advertise<sensor_msgs::PointCloud2>(seg_point_cloud_topic,1);
+    Pose_pub_ = nhPriv.advertise<geometry_msgs::Vector3Stamped>(pose_topic, 1);
+    Heading_angle = nhPriv.advertise<std_msgs::Float32>(heading_angle_topic, 1);
+    point_cloud = nhPriv.advertise<sensor_msgs::PointCloud2>(point_cloud_topic,1);
+    seg_point_cloud = nhPriv.advertise<sensor_msgs::PointCloud2>(seg_point_cloud_topic,1);
 
-    // image_transport::ImageTransport it(nh_);
-    // image_transport::Subscriber sub = it.subscribe(depth_image_topic, 1, construct_point_cloud);
 
-    message_filters::Subscriber<Image> depth_sub(nh_, depth_image_topic, 1);
-    message_filters::Subscriber<CameraInfo> depth_cam_info_sub(nh_, depth_camera_info_topic, 1);
+    nhPriv.getParam("depth_image_topic", depth_image_topic);
+    nhPriv.getParam("depth_camera_info_topic",depth_camera_info_topic);
+
+    message_filters::Subscriber<Image> depth_sub(nhPriv, depth_image_topic , 1);
+    message_filters::Subscriber<CameraInfo> depth_cam_info_sub(nhPriv, depth_camera_info_topic, 1);
     typedef sync_policies::ExactTime<Image, CameraInfo> MySyncPolicy;
     Synchronizer<MySyncPolicy> sync(MySyncPolicy(10),  depth_sub, depth_cam_info_sub);
     sync.registerCallback(boost::bind(&construct_point_cloud, _1, _2));
