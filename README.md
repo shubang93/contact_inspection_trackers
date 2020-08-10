@@ -32,8 +32,8 @@
 ## 5. Topics Information 
 
     Currently for depth estimation topics subscribed to from bag file:
-    Color Image msgs: "/d435i/depth/image_rect_raw/"
-    Depth Camera msgs: "/d435i/depth/camera_info"
+    Depth Image msgs: "/d435i/depth/image_rect_raw/"
+    Depth Camera Info msgs: "/d435i/depth/camera_info"
 
     Modify perception_roi_center.launch if these topics are different
 
