@@ -1,0 +1,7 @@
+<launch>
+   
+    <node name="depth_estimation" pkg="2020_trackers" type="2020_trackers_rgbd_depth">
+        <param name="~depth_camera_info_topic" value="/realsense_plugin/camera/depth/camera_info"/>
+        <param name="~depth_image_topic" value="/realsense_plugin/camera/depth/image_raw"/>
+    </node>
+</launch>

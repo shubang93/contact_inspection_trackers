@@ -31,20 +31,20 @@
 
 ## 5. Topics Information 
 
-    Topics subscribed to from bag file:
-    Color Image msgs: "/front_depth_camera/color/image_raw"
-    Depth Image msgs: "/front_depth_camera/aligned_depth_to_color/image_raw"
+    Currently for depth estimation topics subscribed to from bag file:
+    Color Image msgs: "/front_depth_camera/depth/image_raw"
+    Depth Camera msgs: "/front_depth_camera/depth/camera_info/"
 
     Modify perception.launch if these topics are different
 
     Subscribe to:
-    "point_cloud/pose": For pose information of the plane segmented from poi generated from ROI
-    "/perception/tracker/bboxOut": For bbox info from tracker
+    "/depth_estimation/point_cloud/pose": For pose information of the plane segmented from poi generated from ROI
+    "/depth_estimation//perception/tracker/bboxOut": For bbox info from tracker
     "/perception/tracker/bboxImage": For image annoated with tracked bbox
     "/perception/tracker/status": For status of tracker. To check if tracking was successful 
 
 
 ## TODO
     1. Improve tracker performance
-    2. Point cloud filtering
+    
     

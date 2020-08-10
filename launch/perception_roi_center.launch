@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <!-- launch csrt tracker -->
-    <!-- <arg name="tracker"/>
+    <!-- <arg name="tracker" default="2"/>
     <node name="tracker" pkg="2020_trackers" type="tracking_roi_center.py" output="screen" args="$(arg tracker)">
         <param name="~lock_roi_topc" value="/d435i/lock_roi"/> 
         <param name="~color_img_topic" value="/d435i/color/image_raw"/>
@@ -9,8 +9,12 @@
         <param name="~publish_tracked" value="True"/>
     </node> -->
 
-    <node name="depth_estimation" pkg="2020_trackers" type="2020_trackers_rgbd_depth">
-        <param name="~color_image_topic" value="/d435i/color/image_raw"/>
-        <param name="~depth_image_topic" value="/d435i/aligned_depth_to_color/image_raw"/>
+    <!-- <node name="depth_estimation" pkg="2020_trackers" type="2020_trackers_rgbd_depth">
+        <param name="~depth_image_topic" value="/d435i/depth/image_rect_raw"/>
+        <param name="~depth_camera_info_topic" value="/d435i/depth/camera_info"/>
+    </node> -->
+
+    <node name="depth_estimation" pkg="2020_trackers" type="depth.py">
+        <param name="~roi_width" value="50"/>
     </node>
 </launch>
