@@ -32,14 +32,19 @@
 ## 5. Topics Information 
 
     Currently for depth estimation topics subscribed to from bag file:
-    Color Image msgs: "/front_depth_camera/depth/image_raw"
-    Depth Camera msgs: "/front_depth_camera/depth/camera_info/"
+    Color Image msgs: "/d435i/depth/image_rect_raw/"
+    Depth Camera msgs: "/d435i/depth/camera_info"
 
-    Modify perception.launch if these topics are different
+    Modify perception_roi_center.launch if these topics are different
 
     Subscribe to:
-    "/depth_estimation/point_cloud/pose": For pose information of the plane segmented from poi generated from ROI
-    "/depth_estimation//perception/tracker/bboxOut": For bbox info from tracker
+    "/depth_estimation/point_cloud/pose": For pose information of the centroid of the segmented dominant plane
+    "/depth_estimation/point_cloud/heading_angle": For the angle between the segmented dominant plane and the XY plane 
+    "/depth_estimation/point_cloud/pose" : Point cloud of the scene 
+    "/depth_estimation/point_cloud/segpointcloud" : Point cloud of the segmented dominant plane
+
+    
+    If using tracker:
     "/perception/tracker/bboxImage": For image annoated with tracked bbox
     "/perception/tracker/status": For status of tracker. To check if tracking was successful 
 
