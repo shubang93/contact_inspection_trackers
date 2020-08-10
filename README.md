@@ -40,7 +40,7 @@
     Subscribe to:
     "/depth_estimation/point_cloud/pose": For pose information of the centroid of the segmented dominant plane
     "/depth_estimation/point_cloud/heading_angle": For the angle between the segmented dominant plane and the XY plane 
-    "/depth_estimation/point_cloud/pose" : Point cloud of the scene 
+    "/depth_estimation/point_cloud/pointcoud" : Point cloud of the scene 
     "/depth_estimation/point_cloud/segpointcloud" : Point cloud of the segmented dominant plane
 
     
