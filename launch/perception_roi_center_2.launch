@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="depth_estimation" pkg="2020_trackers" type="2020_trackers_rgbd_depth">
+        <param name="~depth_image_topic" value="/d435i/depth/image_rect_raw"/>
+        <param name="~depth_camera_info_topic" value="/d435i/depth/camera_info"/>
+    </node>
+</launch>

@@ -50,6 +50,9 @@
 #include <image_transport/image_transport.h>
 #include <vision_msgs/Detection2D.h>
 
+#include <iostream>
+#include <Eigen/Dense>
+
 #define PI 3.14159265
 
 using namespace message_filters;
@@ -135,42 +138,34 @@ void initialize_heading_angle_with_nan(std_msgs::Float32& ang) {
 
 void construct_point_cloud(const ImageConstPtr& depth,
                            const CameraInfoConstPtr& cam_info) {
-    const double focal_length =
-        (cam_info->K[0] + cam_info->K[4]) / 2;  // 350.2664184570312;
 
-    ROS_DEBUG_STREAM_COND(DEBUG,
-                          "DepthEstimation: Focal Length " << focal_length);
 
-    double Q[4][4] = {{1, 0, 0, 0},
-                      {0, -1, 0, 0},
-                      {0, 0, focal_length * 0.078, 0},
-                      {0, 0, 0, 1}};
-
-    // TODO: Read focal length from camera info
-    cv::Mat Q2 = cv::Mat(4, 4, CV_64F, Q);
+    // ROS_DEBUG_STREAM_COND(DEBUG,
+    //                       "DepthEstimation: Focal Length " << focal_length);
     cv_bridge::CvImagePtr depth_ptr;
+    std::string encoding;
 
     // Constuct new ros type for seamless encoding from 16UC1-> 8UC1(MONO8)
     if (depth->encoding == "16UC1") {
-        sensor_msgs::Image img;
-        img.header = depth->header;
-        img.height = depth->height;
-        img.width = depth->width;
-        img.is_bigendian = depth->is_bigendian;
-        img.step = depth->step;
-        img.data = depth->data;
-        img.encoding = "mono16";
+        // sensor_msgs::Image img;
+        // img.header = depth->header;
+        // img.height = depth->height;
+        // img.width = depth->width;
+        // img.is_bigendian = depth->is_bigendian;
+        // img.step = depth->step;
+        // img.data = depth->data;
+        // img.encoding = "mono16";
 
-        depth_ptr = cv_bridge::toCvCopy(img, image_encodings::MONO8);
-    }
+        depth_ptr = cv_bridge::toCvCopy(depth, encoding = "32FC1");
+    } 
 
     CV_Assert(!depth_ptr->image.empty());
-    cv::Mat XYZ(depth_ptr->image.size(), CV_32FC3);
-
+    // namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
+    imwrite( "/home/sanjana/window.jpg", depth_ptr->image ); 
+   
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
         new pcl::PointCloud<pcl::PointXYZ>);
 
-    reprojectImageTo3D(depth_ptr->image, XYZ, Q2, false, CV_32F);
 
     // Reconstruct PointCloud with the depthmap points
     pcl::PointXYZ p;
@@ -180,30 +175,45 @@ void construct_point_cloud(const ImageConstPtr& depth,
         for (int j = 0; j < depth_ptr->image.cols; ++j) {
             // The coordinate of the point is taken from the depth map
 
-            if ((depth_ptr->image.at<float>(i, j)) > 0) {
-                cv::Vec3f pixeldepth = XYZ.at<cv::Vec3f>(i, j);
-                p.x = pixeldepth[0];
-                p.y = -pixeldepth[1];
-                p.z = pixeldepth[2];
-                cloud->points.push_back(p);
+                // std::cerr<<depth_ptr->image.at<float>(i,j);
+                p.z = (depth_ptr->image.at<float>(i,j))/1000;
+
+                double cx = cam_info->P[2];
+                double cy = cam_info->P[5];
+                double fx = cam_info->P[0];
+                double fy = cam_info->P[6];
+                double x = (i - cx) * p.z / fx;
+                double y = (j - cy) * p.z / fy;
+                p.x = x;
+                p.y = y;
+                // std::cerr<<" x:"<<p.x<<" y: "<<p.y<<" z: "<<p.z<<" i: "<<i<<" j: "<<j<<" fx: "<<fx<<" fy: "<<fy<<endl;
+                if (p.z>0.1 && p.z<10){
+                cloud->points.push_back(p);}
             }
         }
-    }
+    
 
     cloud->width = cloud->points.size();
     cloud->height = 1;
 
+    // Down Sample point cloud
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p(new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
+
+    // pcl::VoxelGrid<pcl::PointXYZ> sor;
+    // sor.setInputCloud(cloud);
+    // sor.setLeafSize(0.001f, 0.001f, 0.001f);
+    // sor.filter(*cloud_filtered);
+
+    pcl::toROSMsg(*cloud, CLOUD);
+    CLOUD.header.frame_id = depth_ptr->header.frame_id;
+    CLOUD.header.stamp = depth_ptr->header.stamp;
+    point_cloud.publish(CLOUD);
+
+    //______________________________________________________________________________________________
     // Code to segment out dominant plane
-
-    // pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p(new
-    // pcl::PointCloud<pcl::PointXYZ>);
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(
-        new pcl::PointCloud<pcl::PointXYZ>);
-
-    pcl::VoxelGrid<pcl::PointXYZ> sor;
-    sor.setInputCloud(cloud);
-    sor.setLeafSize(70.0f, 70.0f, 70.0f);
-    sor.filter(*cloud_filtered);
+    //______________________________________________________________________________________________
 
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -216,40 +226,39 @@ void construct_point_cloud(const ImageConstPtr& depth,
 
     // Mandatory
     // Set model and method
-    seg.setModelType(pcl::SACMODEL_PLANE);
+    
+    seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setMaxIterations(1000);
-    seg.setDistanceThreshold(0.9);
+    seg.setMaxIterations(500);
+    seg.setDistanceThreshold(0.1);
 
+    Eigen::Vector3f axis = Eigen::Vector3f(0.0,0.0,1.0);
+    seg.setAxis(axis);
+    seg.setEpsAngle(0.26); 
     pcl::ExtractIndices<pcl::PointXYZ> extract;
-    seg.setInputCloud(cloud_filtered);
+    seg.setInputCloud(cloud);
     seg.segment(*inliers, *coefficients);
-
-    pcl::toROSMsg(*cloud_filtered, CLOUD);
-    CLOUD.header.frame_id = depth_ptr->header.frame_id;
-    CLOUD.header.stamp = depth_ptr->header.stamp;
-    point_cloud.publish(CLOUD);
 
     if (inliers->indices.size() != 0) {
         // Extract the inliers
-        // extract.setInputCloud(cloud);
-        // extract.setIndices(inliers);
-        // extract.setNegative(false);
-        // extract.filter(*cloud_p);
+        extract.setInputCloud(cloud);
+        extract.setIndices(inliers);
+        extract.setNegative(false);
+        extract.filter(*cloud_p);
 
-        // pcl::toROSMsg(*cloud_p,SEGCLOUD);
-        // SEGCLOUD.header.frame_id = depth_ptr->header.frame_id;
-        // SEGCLOUD.header.stamp = depth_ptr->header.stamp;
-        // seg_point_cloud.publish(SEGCLOUD);
+        pcl::toROSMsg(*cloud_p,SEGCLOUD);
+        SEGCLOUD.header.frame_id = depth_ptr->header.frame_id;
+        SEGCLOUD.header.stamp = depth_ptr->header.stamp;
+        seg_point_cloud.publish(SEGCLOUD);
 
         pcl::PointXYZ p_centroid;
-        pcl::computeCentroid(*cloud_filtered, inliers->indices, p_centroid);
+        pcl::computeCentroid(*cloud, inliers->indices, p_centroid);
 
-        if (p_centroid.z > 0 && p_centroid.z < 1000) {
+        if (p_centroid.z > 0.1 && p_centroid.z < 10) {
             Pose_center.header.stamp = depth_ptr->header.stamp;
-            Pose_center.vector.x = round(p_centroid.x);
-            Pose_center.vector.y = round(p_centroid.y);
-            Pose_center.vector.z = round(p_centroid.z);
+            Pose_center.vector.x = p_centroid.x;
+            Pose_center.vector.y = p_centroid.y;
+            Pose_center.vector.z = p_centroid.z;
 
             float A = coefficients->values[0];
             float B = coefficients->values[1];
@@ -259,12 +268,11 @@ void construct_point_cloud(const ImageConstPtr& depth,
             ROS_DEBUG_STREAM_COND(
                 DEBUG, "DepthEstimation: ABC: " << A << " " << B << " " << C
                                                 << " " << D);
-
             heading_angle.data =
-                acos(-C / sqrt(pow(A, 2) + pow(B, 2) + pow(C, 2)));
-
+                (acos(C / sqrt(pow(A, 2) + pow(B, 2) + pow(C, 2)))*180/PI);
             Pose_pub_.publish(Pose_center);
             Heading_angle.publish(heading_angle);
+
         } else {
             Pose_center.header.stamp = depth_ptr->header.stamp;
             initialize_pose_with_nan(Pose_center);
@@ -288,11 +296,12 @@ int main(int argc, char** argv) {
 
     Pose_pub_ = nhPriv.advertise<geometry_msgs::Vector3Stamped>(pose_topic, 1);
     Heading_angle = nhPriv.advertise<std_msgs::Float32>(heading_angle_topic, 1);
+    
     point_cloud =
         nhPriv.advertise<sensor_msgs::PointCloud2>(point_cloud_topic, 1);
 
-    // seg_point_cloud =
-    //    nhPriv.advertise<sensor_msgs::PointCloud2>(seg_point_cloud_topic, 1);
+    seg_point_cloud =
+       nhPriv.advertise<sensor_msgs::PointCloud2>(seg_point_cloud_topic, 1);
 
     nhPriv.getParam("depth_image_topic", depth_image_topic);
     nhPriv.getParam("depth_camera_info_topic", depth_camera_info_topic);
