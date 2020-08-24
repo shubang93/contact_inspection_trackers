@@ -171,6 +171,8 @@ void construct_point_cloud(const ImageConstPtr& depth,
     pcl::PointXYZ p;
 
     ROS_DEBUG_STREAM_COND(DEBUG, "DepthEstimation: Creating point cloud");
+
+    // #pragma omp parallel for
     for (int i = 0; i < depth_ptr->image.rows; ++i) {
         for (int j = 0; j < depth_ptr->image.cols; ++j) {
             // The coordinate of the point is taken from the depth map
@@ -190,7 +192,7 @@ void construct_point_cloud(const ImageConstPtr& depth,
                 if (p.z>0.1 && p.z<10){
                 cloud->points.push_back(p);}
             }
-        }
+    }
     
 
     cloud->width = cloud->points.size();
@@ -201,12 +203,12 @@ void construct_point_cloud(const ImageConstPtr& depth,
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
-    // pcl::VoxelGrid<pcl::PointXYZ> sor;
-    // sor.setInputCloud(cloud);
-    // sor.setLeafSize(0.001f, 0.001f, 0.001f);
-    // sor.filter(*cloud_filtered);
+    pcl::VoxelGrid<pcl::PointXYZ> sor;
+    sor.setInputCloud(cloud);
+    sor.setLeafSize(0.01f, 0.01f, 0.01f);
+    sor.filter(*cloud_filtered);
 
-    pcl::toROSMsg(*cloud, CLOUD);
+    pcl::toROSMsg(*cloud_filtered, CLOUD);
     CLOUD.header.frame_id = depth_ptr->header.frame_id;
     CLOUD.header.stamp = depth_ptr->header.stamp;
     point_cloud.publish(CLOUD);
@@ -229,19 +231,19 @@ void construct_point_cloud(const ImageConstPtr& depth,
     
     seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
     seg.setMethodType(pcl::SAC_RANSAC);
-    seg.setMaxIterations(500);
+    seg.setMaxIterations(100);
     seg.setDistanceThreshold(0.1);
 
     Eigen::Vector3f axis = Eigen::Vector3f(0.0,0.0,1.0);
     seg.setAxis(axis);
     seg.setEpsAngle(0.26); 
     pcl::ExtractIndices<pcl::PointXYZ> extract;
-    seg.setInputCloud(cloud);
+    seg.setInputCloud(cloud_filtered);
     seg.segment(*inliers, *coefficients);
 
     if (inliers->indices.size() != 0) {
         // Extract the inliers
-        extract.setInputCloud(cloud);
+        extract.setInputCloud(cloud_filtered);
         extract.setIndices(inliers);
         extract.setNegative(false);
         extract.filter(*cloud_p);
@@ -252,7 +254,7 @@ void construct_point_cloud(const ImageConstPtr& depth,
         seg_point_cloud.publish(SEGCLOUD);
 
         pcl::PointXYZ p_centroid;
-        pcl::computeCentroid(*cloud, inliers->indices, p_centroid);
+        pcl::computeCentroid(*cloud_filtered, inliers->indices, p_centroid);
 
         if (p_centroid.z > 0.1 && p_centroid.z < 10) {
             Pose_center.header.stamp = depth_ptr->header.stamp;
@@ -268,8 +270,12 @@ void construct_point_cloud(const ImageConstPtr& depth,
             ROS_DEBUG_STREAM_COND(
                 DEBUG, "DepthEstimation: ABC: " << A << " " << B << " " << C
                                                 << " " << D);
-            heading_angle.data =
-                (acos(C / sqrt(pow(A, 2) + pow(B, 2) + pow(C, 2)))*180/PI);
+            
+            float temp = (acos(C / sqrt(pow(A, 2) + pow(B, 2) + pow(C, 2)))*180/PI);
+            if(temp<=90)
+            {heading_angle.data=temp;}
+            else
+            {heading_angle.data= -(180.0-temp);}
             Pose_pub_.publish(Pose_center);
             Heading_angle.publish(heading_angle);
 

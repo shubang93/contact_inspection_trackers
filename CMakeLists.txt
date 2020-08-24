@@ -22,6 +22,13 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.2 REQUIRED)
 find_package(Eigen3 REQUIRED)
+#find_package(OpenMP REQUIRED)
+
+#if(OPENMP_FOUND)
+#  message(STATUS "OPENMP FOUND")
+#  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})  # or if you use C: ${OpenMP_C_FLAGS}
+#  set(OpenMP_LIBS gomp)
+#endif()
 
 # message(\n\n\n${OpenCV_INCLUDE_DIRS}\n\n\n)
 
@@ -84,6 +91,8 @@ find_package(Eigen3 REQUIRED)
 #   std_msgs
 # )
 
+
+
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
 ################################################
@@ -122,7 +131,14 @@ catkin_package(
     sensor_msgs
     dynamic_reconfigure
     vision_msgs
+  
 )
+#catkin_package(
+#  DEPENDS
+#    OpenMP
+#)
+
+
 
 ###########
 ## Build ##
@@ -159,6 +175,9 @@ add_executable(${PROJECT_NAME}_rgbd_depth
 )
 
 
+
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -185,6 +204,14 @@ target_link_libraries(${PROJECT_NAME}_rgbd_depth
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )
+#target_link_libraries(${PROJECT_NAME}_rgbd_depth
+#  ${catkin_LIBRARIES}
+#  ${OpenMP_LIBS}
+#)
+
+
+#target_compile_options(${PROJECT_NAME}_rgbd_depth PRIVATE ${OpenMP_FLAGS})
+#add_dependencies(${PROJECT_NAME}_rgbd_depth ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##
