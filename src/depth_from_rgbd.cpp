@@ -192,7 +192,7 @@ void construct_point_cloud(const ImageConstPtr& depth,
 
     cloud->width = cloud->points.size();
     cloud->height = 1;
-    std::cerr<<cloud->points.size()<<endl;
+    // std::cerr<<cloud->points.size()<<endl;
 
     // Down Sample point cloud
     // const clock_t begin_time1 = clock();
