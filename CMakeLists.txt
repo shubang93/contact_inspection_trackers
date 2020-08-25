@@ -22,13 +22,13 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.2 REQUIRED)
 find_package(Eigen3 REQUIRED)
-#find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED)
 
-#if(OPENMP_FOUND)
-#  message(STATUS "OPENMP FOUND")
-#  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})  # or if you use C: ${OpenMP_C_FLAGS}
-#  set(OpenMP_LIBS gomp)
-#endif()
+if(OPENMP_FOUND)
+  message(STATUS "OPENMP FOUND")
+  set(OpenMP_FLAGS ${OpenMP_CXX_FLAGS})  # or if you use C: ${OpenMP_C_FLAGS}
+  set(OpenMP_LIBS gomp)
+endif()
 
 # message(\n\n\n${OpenCV_INCLUDE_DIRS}\n\n\n)
 
@@ -133,10 +133,10 @@ catkin_package(
     vision_msgs
   
 )
-#catkin_package(
-#  DEPENDS
-#    OpenMP
-#)
+catkin_package(
+  DEPENDS
+    OpenMP
+)
 
 
 
@@ -173,6 +173,9 @@ add_executable(${PROJECT_NAME}_d435_gui
 add_executable(${PROJECT_NAME}_rgbd_depth
     src/depth_from_rgbd.cpp
 )
+add_executable(${PROJECT_NAME}_depth_from_pc
+    src/depth_from_pointcloud.cpp
+)
 
 
 
@@ -204,10 +207,17 @@ target_link_libraries(${PROJECT_NAME}_rgbd_depth
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
 )
-#target_link_libraries(${PROJECT_NAME}_rgbd_depth
-#  ${catkin_LIBRARIES}
-#  ${OpenMP_LIBS}
-#)
+
+target_link_libraries(${PROJECT_NAME}_depth_from_pc
+  ${PCL_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(${PROJECT_NAME}_rgbd_depth
+  ${catkin_LIBRARIES}
+  ${OpenMP_LIBS}
+)
 
 
 #target_compile_options(${PROJECT_NAME}_rgbd_depth PRIVATE ${OpenMP_FLAGS})
@@ -230,6 +240,9 @@ install(PROGRAMS
 
 ## Mark executables and/or libraries for installation
 install(TARGETS ${PROJECT_NAME}_rgbd_depth
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+install(TARGETS ${PROJECT_NAME}_depth_from_pc
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

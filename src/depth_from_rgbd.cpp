@@ -4,9 +4,11 @@
 #include <std_msgs/Int8.h>
 #include <std_msgs/String.h>
 #include <stdio.h>
+#include <time.h>
 #include <fstream>
 #include <iostream>
 #include <string>
+
 
 #include <ros/console.h>
 #include <ros/ros.h>
@@ -140,6 +142,8 @@ void construct_point_cloud(const ImageConstPtr& depth,
                            const CameraInfoConstPtr& cam_info) {
 
 
+    
+
     // ROS_DEBUG_STREAM_COND(DEBUG,
     //                       "DepthEstimation: Focal Length " << focal_length);
     cv_bridge::CvImagePtr depth_ptr;
@@ -147,38 +151,29 @@ void construct_point_cloud(const ImageConstPtr& depth,
 
     // Constuct new ros type for seamless encoding from 16UC1-> 8UC1(MONO8)
     if (depth->encoding == "16UC1") {
-        // sensor_msgs::Image img;
-        // img.header = depth->header;
-        // img.height = depth->height;
-        // img.width = depth->width;
-        // img.is_bigendian = depth->is_bigendian;
-        // img.step = depth->step;
-        // img.data = depth->data;
-        // img.encoding = "mono16";
-
         depth_ptr = cv_bridge::toCvCopy(depth, encoding = "32FC1");
     } 
 
     CV_Assert(!depth_ptr->image.empty());
-    // namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
-    imwrite( "/home/sanjana/window.jpg", depth_ptr->image ); 
-   
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
-        new pcl::PointCloud<pcl::PointXYZ>);
 
 
     // Reconstruct PointCloud with the depthmap points
     pcl::PointXYZ p;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(
+        new pcl::PointCloud<pcl::PointXYZ>);
+
+    Eigen::Map<Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> A_Eigen(depth_ptr->image.ptr<float>(), depth_ptr->image.rows, depth_ptr->image.cols);
 
     ROS_DEBUG_STREAM_COND(DEBUG, "DepthEstimation: Creating point cloud");
 
-    // #pragma omp parallel for
+    // const clock_t begin_time = clock();
+   
+    #pragma omp parallel for collapse(2) 
     for (int i = 0; i < depth_ptr->image.rows; ++i) {
         for (int j = 0; j < depth_ptr->image.cols; ++j) {
             // The coordinate of the point is taken from the depth map
 
-                // std::cerr<<depth_ptr->image.at<float>(i,j);
-                p.z = (depth_ptr->image.at<float>(i,j))/1000;
+                p.z = A_Eigen(i,j)/1000; //(depth_ptr->image.at<float>(i,j))/1000;
 
                 double cx = cam_info->P[2];
                 double cy = cam_info->P[5];
@@ -193,29 +188,34 @@ void construct_point_cloud(const ImageConstPtr& depth,
                 cloud->points.push_back(p);}
             }
     }
-    
+    // std::cerr<<"loop"<<float( clock () - begin_time ) /  CLOCKS_PER_SEC<<endl;
 
     cloud->width = cloud->points.size();
     cloud->height = 1;
+    std::cerr<<cloud->points.size()<<endl;
 
     // Down Sample point cloud
+    // const clock_t begin_time1 = clock();
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_p(new pcl::PointCloud<pcl::PointXYZ>);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
 
     pcl::VoxelGrid<pcl::PointXYZ> sor;
     sor.setInputCloud(cloud);
-    sor.setLeafSize(0.01f, 0.01f, 0.01f);
+    sor.setLeafSize(0.1f, 0.1f, 0.1f);
     sor.filter(*cloud_filtered);
 
     pcl::toROSMsg(*cloud_filtered, CLOUD);
     CLOUD.header.frame_id = depth_ptr->header.frame_id;
     CLOUD.header.stamp = depth_ptr->header.stamp;
     point_cloud.publish(CLOUD);
-
+    
+    // std::cerr<<"downsampling"<<float( clock () - begin_time1 ) /  CLOCKS_PER_SEC<<endl;
     //______________________________________________________________________________________________
     // Code to segment out dominant plane
     //______________________________________________________________________________________________
+
+    // const clock_t begin_time2 = clock();
 
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -240,6 +240,9 @@ void construct_point_cloud(const ImageConstPtr& depth,
     pcl::ExtractIndices<pcl::PointXYZ> extract;
     seg.setInputCloud(cloud_filtered);
     seg.segment(*inliers, *coefficients);
+    // std::cerr<<"seg " <<float( clock () - begin_time2 ) /  CLOCKS_PER_SEC<<endl;
+
+    // const clock_t begin_time3 = clock();
 
     if (inliers->indices.size() != 0) {
         // Extract the inliers
@@ -278,6 +281,7 @@ void construct_point_cloud(const ImageConstPtr& depth,
             {heading_angle.data= -(180.0-temp);}
             Pose_pub_.publish(Pose_center);
             Heading_angle.publish(heading_angle);
+            // std::cerr<<"pose"<<float( clock () - begin_time3 ) /  CLOCKS_PER_SEC<<endl;
 
         } else {
             Pose_center.header.stamp = depth_ptr->header.stamp;
