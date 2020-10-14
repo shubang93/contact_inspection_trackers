@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="depth_estimation" pkg="2020_trackers" type="2020_trackers_depth_from_pc"/>
+
+    <node name="depth_estimation" pkg="2020_trackers" type="depth.py">
+        <param name="~roi_width" value="50"/>
+        <remap from="/depth_estimation/point_cloud/pose" to="/median_depth/pose"/>
+    </node>
+</launch>

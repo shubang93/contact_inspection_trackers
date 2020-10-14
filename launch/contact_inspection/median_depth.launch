@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="depth_estimation" pkg="2020_trackers" type="depth.py">
+        <param name="~roi_width" value="50"/>
+    </node>
+</launch>
