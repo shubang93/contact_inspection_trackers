@@ -32,9 +32,9 @@
 #define PI 3.14159265
 
 const std::string point_cloud_topic = "/d435i/depth/color/points";
-const std::string seg_point_cloud_topic = "point_cloud/segpointcloud";
-const std::string pose_topic = "point_cloud/pose";
-const std::string heading_angle_topic = "point_cloud/heading_angle";
+const std::string seg_point_cloud_topic = "/depth_estimation/point_cloud/segpointcloud";
+const std::string pose_topic = "/depth_estimation/point_cloud/pose";
+const std::string heading_angle_topic = "/depth_estimation/point_cloud/heading_angle";
 
 const bool DEBUG = false;
 

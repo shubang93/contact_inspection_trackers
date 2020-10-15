@@ -131,7 +131,7 @@ catkin_package(
     sensor_msgs
     dynamic_reconfigure
     vision_msgs
-  
+
 )
 catkin_package(
   DEPENDS
@@ -164,22 +164,9 @@ add_definitions(${PCL_DEFINITIONS})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(${PROJECT_NAME}_gui
-  src/roi_selector_gui.cpp
-)
-add_executable(${PROJECT_NAME}_d435_gui
-  src/roi_selector_gui_d435.cpp
-)
-add_executable(${PROJECT_NAME}_rgbd_depth
-    src/depth_from_rgbd.cpp
-)
 add_executable(${PROJECT_NAME}_depth_from_pc
     src/depth_from_pointcloud.cpp
 )
-
-
-
-
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -189,34 +176,11 @@ add_executable(${PROJECT_NAME}_depth_from_pc
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(${PROJECT_NAME}_d435_gui ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_gui
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-target_link_libraries(${PROJECT_NAME}_d435_gui
-  ${catkin_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-)
-
-target_link_libraries(${PROJECT_NAME}_rgbd_depth
-  ${PCL_LIBRARIES}
-  ${OpenCV_LIBRARIES}
-  ${catkin_LIBRARIES}
-)
 
 target_link_libraries(${PROJECT_NAME}_depth_from_pc
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
-)
-
-target_link_libraries(${PROJECT_NAME}_rgbd_depth
-  ${catkin_LIBRARIES}
-  ${OpenMP_LIBS}
 )
 
 
@@ -238,10 +202,6 @@ install(PROGRAMS
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-## Mark executables and/or libraries for installation
-install(TARGETS ${PROJECT_NAME}_rgbd_depth
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
 install(TARGETS ${PROJECT_NAME}_depth_from_pc
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
