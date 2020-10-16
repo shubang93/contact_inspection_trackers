@@ -80,14 +80,13 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
         pcl::fromROSMsg(*msg, *cloud);
 
         size_t num_points = cloud->size();
-        int samples = (int) num_points / downsample;
-        ROS_ERROR_THROTTLE(1, "Samples: %d", samples);
+        int samples = (int)num_points / downsample;
 
         // transformed & filtered
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(
             new pcl::PointCloud<pcl::PointXYZ>);
-        // vocelized
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_vocel(
+        // voxelized
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_voxel(
             new pcl::PointCloud<pcl::PointXYZ>);
 
         // downsample randomly
@@ -97,7 +96,8 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
         random_sample.setSeed(rand());
         random_sample.filter(*cloud_filtered);
 
-        pcl_ros::transformPointCloud(*cloud_filtered, *cloud_filtered, transform);
+        pcl_ros::transformPointCloud(*cloud_filtered, *cloud_filtered,
+                                     transform);
 
         // filter cloud in x (depth) and z (remove ground)
         pcl::PassThrough<pcl::PointXYZ> pass;
@@ -118,11 +118,11 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
             filtered_cloud.publish(filtered_msg);
         }
 
-        // vocelize cloud
+        // voxelize cloud
         pcl::VoxelGrid<pcl::PointXYZ> sor;
         sor.setInputCloud(cloud_filtered);
         sor.setLeafSize(0.01, 0.01, 0.01);
-        sor.filter(*cloud_vocel);
+        sor.filter(*cloud_voxel);
 
         pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
         pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
@@ -136,12 +136,12 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
         seg.setMethodType(pcl::SAC_RANSAC);
         seg.setMaxIterations(100);
         seg.setDistanceThreshold(.1);
-        seg.setInputCloud(cloud_vocel);
+        seg.setInputCloud(cloud_voxel);
         seg.segment(*inliers, *coefficients);
 
         if (inliers->indices.size() != 0) {
             pcl::PointXYZ p_centroid;
-            pcl::computeCentroid(*cloud_vocel, inliers->indices, p_centroid);
+            pcl::computeCentroid(*cloud_voxel, inliers->indices, p_centroid);
 
             // check still within limits
             if (p_centroid.x > min_depth && p_centroid.x < max_depth) {
@@ -154,10 +154,9 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
 
                 float A = coefficients->values[0];
                 float B = coefficients->values[1];
-                float C = coefficients->values[2];
 
-                heading_angle.data =
-                    acos(A / sqrt(pow(A, 2) + pow(B, 2) + pow(C, 2)));
+                // find heading
+                heading_angle.data = atan2(A / B);
 
                 Pose_pub_.publish(Pose_center);
                 Heading_angle.publish(heading_angle);
@@ -197,11 +196,9 @@ int main(int argc, char** argv) {
 
     nhPriv.getParam("debug", DEBUG);
 
-    ROS_INFO_STREAM("Downsample: " << downsample <<
-                    " Max Z: " << max_pc <<
-                    " Min Z: " << min_pc <<
-                    " Max Depth: " << max_depth <<
-                    " Min Depth: " << min_depth);
+    ROS_INFO_STREAM("Downsample: " << downsample << " Max Z: " << max_pc
+                                   << " Min Z: " << min_pc << " Max Depth: "
+                                   << max_depth << " Min Depth: " << min_depth);
 
     if (DEBUG) {
         filtered_cloud = nhPriv.advertise<sensor_msgs::PointCloud2>(
