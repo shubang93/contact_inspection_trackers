@@ -156,7 +156,7 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
                 float B = coefficients->values[1];
 
                 // find heading
-                heading_angle.data = atan2(A / B);
+                heading_angle.data = atan2(A, B);
 
                 Pose_pub_.publish(Pose_center);
                 Heading_angle.publish(heading_angle);
