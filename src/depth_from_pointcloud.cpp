@@ -15,6 +15,7 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/passthrough.h>
+#include <pcl/filters/random_sample.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/point_types.h>
 #include <pcl/sample_consensus/method_types.h>
@@ -37,14 +38,17 @@ const std::string heading_angle_topic =
     "/depth_estimation/point_cloud/heading_angle";
 
 // z direction
-const static double max_pc = 10.0;
-const static double min_pc = -1.0;
+double max_pc = 10.0;
+double min_pc = -1.0;
 
 // x depth out
-const static double max_depth = 10.0;
-const static double min_depth = 0.2;
+double max_depth = 10.0;
+double min_depth = 0.2;
 
-const bool DEBUG = false;
+// downsample amount
+double downsample = 2.0;
+
+bool DEBUG = false;
 
 bool has_transform = false;
 
@@ -75,6 +79,10 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
             new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*msg, *cloud);
 
+        size_t num_points = cloud->size();
+        int samples = (int) num_points / downsample;
+        ROS_ERROR_THROTTLE(1, "Samples: %d", samples);
+
         // transformed & filtered
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(
             new pcl::PointCloud<pcl::PointXYZ>);
@@ -82,7 +90,14 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_vocel(
             new pcl::PointCloud<pcl::PointXYZ>);
 
-        pcl_ros::transformPointCloud(*cloud, *cloud_filtered, transform);
+        // downsample randomly
+        pcl::RandomSample<pcl::PointXYZ> random_sample;
+        random_sample.setInputCloud(cloud);
+        random_sample.setSample(samples);
+        random_sample.setSeed(rand());
+        random_sample.filter(*cloud_filtered);
+
+        pcl_ros::transformPointCloud(*cloud_filtered, *cloud_filtered, transform);
 
         // filter cloud in x (depth) and z (remove ground)
         pcl::PassThrough<pcl::PointXYZ> pass;
@@ -140,11 +155,6 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
                 float A = coefficients->values[0];
                 float B = coefficients->values[1];
                 float C = coefficients->values[2];
-                float D = coefficients->values[3];
-
-                ROS_DEBUG_STREAM_COND(DEBUG, "PlaneSeg: ABC: " << A << " " << B
-                                                               << " " << C
-                                                               << " " << D);
 
                 heading_angle.data =
                     acos(A / sqrt(pow(A, 2) + pow(B, 2) + pow(C, 2)));
@@ -169,12 +179,29 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "plane_seg");
+    ros::NodeHandle nh;
     ros::NodeHandle nhPriv("~");
 
     ROS_DEBUG_COND(DEBUG, "PlaneSeg: Node starting...");
 
     Pose_pub_ = nhPriv.advertise<geometry_msgs::Vector3Stamped>(pose_topic, 1);
     Heading_angle = nhPriv.advertise<std_msgs::Float32>(heading_angle_topic, 1);
+
+    nhPriv.getParam("downsample", downsample);
+
+    nhPriv.getParam("max_z", max_pc);
+    nhPriv.getParam("min_z", min_pc);
+
+    nhPriv.getParam("max_depth", max_depth);
+    nhPriv.getParam("min_depth", min_depth);
+
+    nhPriv.getParam("debug", DEBUG);
+
+    ROS_INFO_STREAM("Downsample: " << downsample <<
+                    " Max Z: " << max_pc <<
+                    " Min Z: " << min_pc <<
+                    " Max Depth: " << max_depth <<
+                    " Min Depth: " << min_depth);
 
     if (DEBUG) {
         filtered_cloud = nhPriv.advertise<sensor_msgs::PointCloud2>(
