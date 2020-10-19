@@ -148,8 +148,6 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
                 // depth is x component but everything else expects
                 // depth in z field, so hack it in
                 Pose_center.header.stamp = msg->header.stamp;
-                Pose_center.vector.x = p_centroid.x;
-                Pose_center.vector.y = p_centroid.y;
                 Pose_center.vector.z = p_centroid.x;  // HACK
 
                 float A = coefficients->values[0];
@@ -157,6 +155,9 @@ void pointcloud_callback(const sensor_msgs::PointCloud2::ConstPtr& msg) {
 
                 // find heading
                 heading_angle.data = atan2(A, B);
+
+                // put heading & pose in same message for convienence
+                Pose_center.vector.x = heading_angle.data;
 
                 Pose_pub_.publish(Pose_center);
                 Heading_angle.publish(heading_angle);
