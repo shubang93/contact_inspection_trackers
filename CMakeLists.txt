@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(2020_trackers)
+project(contact_inspection_trackers)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
@@ -164,7 +164,7 @@ add_definitions(${PCL_DEFINITIONS})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-add_executable(${PROJECT_NAME}_depth_from_pc
+add_executable(depth_from_pointcloud
     src/depth_from_pointcloud.cpp
 )
 
@@ -177,7 +177,7 @@ add_executable(${PROJECT_NAME}_depth_from_pc
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 
-target_link_libraries(${PROJECT_NAME}_depth_from_pc
+target_link_libraries(depth_from_pointcloud
   ${PCL_LIBRARIES}
   ${OpenCV_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -202,7 +202,7 @@ install(PROGRAMS
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(TARGETS ${PROJECT_NAME}_depth_from_pc
+install(TARGETS depth_from_pointcloud
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

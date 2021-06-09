@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="depth_from_pointcloud" pkg="2020_trackers" type="2020_trackers_depth_from_pc">
+    <node name="depth_from_pointcloud" pkg="contact_inspection_trackers" type="depth_from_pointcloud">
         <param name="~downsample" value="10.0"/>
         <param name="~max_z" value="10.0"/>
         <param name="~min_z" value="-1.0"/>
@@ -9,7 +9,7 @@
         <param name="~debug" value="true"/>
     </node>
 
-    <node name="median_depth" pkg="2020_trackers" type="depth.py">
+    <node name="median_depth" pkg="contact_inspection_trackers" type="depth.py">
         <param name="~roi_width" value="50"/>
         <remap from="/depth_estimation/point_cloud/pose"
                to="/depth_estimation/median_depth/pose"/>
